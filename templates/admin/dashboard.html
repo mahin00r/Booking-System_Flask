@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+        .sidebar {
+            background-color: #000000;
+            min-height: 100vh;
+            color: #fff;
+        }
+        .sidebar h4, .sidebar a {
+            color: #ffffff;
+        }
+        .sidebar a:hover {
+            color: #ffa500;
+        }
+        .topbar {
+            background-color: #0d6efd;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 20px;
+            color: #fff;
+        }
+        .topbar i {
+            font-size: 1.2rem;
+            margin-left: 20px;
+            cursor: pointer;
+        }
+        .sidebar .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-top: 30px;
+            margin-bottom: 10px;
+            color: #ffa500;
+            padding-left: 15px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .nav-link {
+            padding: 10px 15px;
+            display: block;
+            color: #fff;
+            text-decoration: none;
+        }
+        .nav-link:hover {
+            background-color: #1e1e1e;
+            color: #ffa500;
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar p-3">
+            <h4 class="text-center mb-4">Admin Panel</h4>
+            <a href="#" class="nav-link">Dashboard</a>
+            <a href="#" class="nav-link">Users</a>
+            <a href="#" class="nav-link">Orders</a>
+            <a href="#" class="nav-link">Branch</a>
+            <a href="#" class="nav-link">Stats</a>
+            <a href="#" class="nav-link">Notifications</a>
+
+            <div class="section-title">Service</div>
+            <a href="#" class="nav-link">E-ticket</a>
+            <a href="#" class="nav-link">Penthouses</a>
+            <a href="#" class="nav-link">Restaurants</a>
+
+            <div class="mt-auto pt-4">
+                <a href="#" class="nav-link">Profile</a>
+                <a href="{{ url_for('admin_logout') }}" class="nav-link text-danger">Logout</a>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex-grow-1">
+            <!-- Topbar -->
+            <div class="topbar shadow-sm">
+                <i class="bi bi-envelope-fill"></i>
+                <i class="bi bi-bell-fill"></i>
+                <i class="bi bi-gear-fill"></i>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+                <h2>Dashboard Overview</h2>
+                <p>Statistics and quick insights will appear here.</p>
+                <!-- Placeholder for future stats -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card text-white bg-primary mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Users</h5>
+                                <p class="card-text">...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-warning mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Orders</h5>
+                                <p class="card-text">...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-dark mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Revenue</h5>
+                                <p class="card-text">...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Icons CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+</body>
+</html>
