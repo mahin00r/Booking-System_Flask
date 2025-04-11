@@ -63,12 +63,14 @@ with app.app_context():
 def home():
     return render_template("home.html")
 
-@app.route("/hotel_rooms")
+# Get Hotel Room Options
+@app.route("/hotel_rooms", methods=["GET"])
 def get_hotel_rooms():
     rooms = HotelRoom.query.all()
     return render_template("hotel_rooms.html", rooms=rooms)
 
-@app.route("/penthouses")
+# Get Penthouse Options
+@app.route("/penthouses", methods=["GET"])
 def get_penthouses():
     penthouses = Penthouse.query.all()
     return render_template("penthouses.html", penthouses=penthouses)
@@ -85,14 +87,17 @@ def get_travel_buddies():
 
 # ------------ Add New Entries ------------
 
+# Add a Hotel Room
 @app.route("/add_hotel_room", methods=["POST"])
 def add_hotel_room():
     name = request.form.get("name")
     price = float(request.form.get("price", 0))
     description = request.form.get("description")
-    new_room = HotelRoom(name=name, price=price, description=description)
+    
+    new_room = HotelRoom(name=name, price=price, description=description, availability=True)
     db.session.add(new_room)
     db.session.commit()
+    
     return redirect("/hotel_rooms")
 
 @app.route("/add_penthouse", methods=["POST"])
@@ -115,6 +120,7 @@ def add_transport_ticket():
     db.session.commit()
     return redirect("/transport_tickets")
 
+# Add a Travel Buddy
 @app.route("/add_travel_buddy", methods=["POST"])
 def add_travel_buddy():
     name = request.form.get("name")
