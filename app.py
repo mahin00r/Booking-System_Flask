@@ -52,10 +52,13 @@ def home():
     return render_template("home.html")
 
 # Get Hotel Room Options
-@app.route("/hotel_rooms", methods=["GET"])
+@app.route("/hotel_rooms_1069", methods=["GET"])
 def get_hotel_rooms():
     rooms = HotelRoom.query.all()
     return render_template("hotel_rooms.html", rooms=rooms)
+
+
+
 
 # Get Penthouse Options
 @app.route("/penthouses", methods=["GET"])
@@ -78,17 +81,31 @@ def get_travel_buddies():
 # ------------ Add New Entries ------------
 
 # Add a Hotel Room
-@app.route("/add_hotel_room", methods=["POST"])
-def add_hotel_room():
-    name = request.form.get("name")
-    price = float(request.form.get("price", 0))
-    description = request.form.get("description")
+# @app.route("/add_hotel_room_1069", methods=["POST"])
+# def add_hotel_room():
+#     name = request.form.get("name")
+#     price = float(request.form.get("price", 0))
+#     description = request.form.get("description")
     
+#     new_room = HotelRoom(name=name, price=price, description=description, availability=True)
+#     db.session.add(new_room)
+#     db.session.commit()
+    
+#     return redirect("/hotel_rooms")
+
+@app.route("/add_hotel_room_1069", methods=["POST"])
+def add_hotel_room():
+    data = request.get_json()
+    name = data.get("name")
+    price = float(data.get("price", 0))
+    description = data.get("description")
+
     new_room = HotelRoom(name=name, price=price, description=description, availability=True)
     db.session.add(new_room)
     db.session.commit()
-    
-    return redirect("/hotel_rooms")
+
+    return jsonify({"message": "Room added"}), 201
+
 
 # Add a Penthouse
 @app.route("/add_penthouse", methods=["POST"])
@@ -117,7 +134,7 @@ def add_transport_ticket():
     return redirect("/transport_tickets")
 
 # Add a Travel Buddy
-@app.route("/add_travel_buddy", methods=["POST"])
+@app.route("/add_travel_buddy_1069", methods=["POST"])
 def add_travel_buddy():
     name = request.form.get("name")
     destination = request.form.get("destination")
