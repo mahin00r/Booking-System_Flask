@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Booking System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">Welcome to Ticket Booking System</h2>
+        
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4>Hotel Rooms</h4>
+                    <p>Find the best rooms for your stay.</p>
+                    <a href="/hotel_rooms" class="btn btn-primary">View Rooms</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4>Penthouses</h4>
+                    <p>Luxury stays for ultimate comfort.</p>
+                    <a href="/penthouses" class="btn btn-primary">View Penthouses</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4>Transportation Tickets</h4>
+                    <p>Book your tickets for easy travel.</p>
+                    <a href="/transport_tickets" class="btn btn-primary">View Tickets</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4>Find a Travel Buddy</h4>
+                    <p>Connect with fellow travelers.</p>
+                    <a href="/travel_buddies" class="btn btn-primary">Find Buddies</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
