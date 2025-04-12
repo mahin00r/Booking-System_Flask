@@ -67,7 +67,7 @@ def home():
 @app.route("/hotel_rooms", methods=["GET"])
 def get_hotel_rooms():
     rooms = HotelRoom.query.all()
-    return render_template("hotel_rooms.html", rooms=rooms)
+    return render_template("hotel_rooms_1069.html", rooms=rooms)
 
 # Get Penthouse Options
 @app.route("/penthouses", methods=["GET"])
