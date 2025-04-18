@@ -1,61 +1,14 @@
 from flask import Flask, render_template, request, redirect, flash, session, url_for
-from flask_sqlalchemy import SQLAlchemy
+from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
-
-# Database Configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/ticket_booking"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = "ticket_booking_secret"
 
-db = SQLAlchemy(app)
-
-# ------------ Models ------------
-
-class Admin(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    password_hash = db.Column(db.String(200), nullable=False)
-    email = db.Column(db.String(100), nullable=True)  
-    address = db.Column(db.String(255), nullable=True)
-    description = db.Column(db.Text, nullable=True)
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-    
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class HotelRoom(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(500), nullable=False)
-    availability = db.Column(db.Boolean, default=True)
-
-class TransportationTicket(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    transport_type = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(500), nullable=False)
-    availability = db.Column(db.Boolean, default=True)
-
-class TravelBuddy(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    destination = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(500), nullable=False)
-
-class Penthouse(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(500), nullable=False)
-    availability = db.Column(db.Boolean, default=True)
-
-# Create Database Tables
-with app.app_context():
-    db.create_all()
+# MongoDB Configuration
+app.config["MONGO_URI"] = "mongodb+srv://root:Samir323%40@all-ticket-booking-syst.2qrnrhs.mongodb.net/ticket_booking?retryWrites=true&w=majority&appName=ALL-Ticket-Booking-System"
+mongo = PyMongo(app)
 
 # ------------ Public Routes ------------
 
@@ -63,41 +16,40 @@ with app.app_context():
 def home():
     return render_template("home.html")
 
-# Get Hotel Room Options
 @app.route("/hotel_rooms", methods=["GET"])
 def get_hotel_rooms():
-    rooms = HotelRoom.query.all()
+    rooms = list(mongo.db.hotel_rooms.find())
     return render_template("hotel_rooms.html", rooms=rooms)
 
-# Get Penthouse Options
 @app.route("/penthouses", methods=["GET"])
 def get_penthouses():
-    penthouses = Penthouse.query.all()
+    penthouses = list(mongo.db.penthouses.find())
     return render_template("penthouses.html", penthouses=penthouses)
 
 @app.route("/transport_tickets")
 def get_transport_tickets():
-    tickets = TransportationTicket.query.all()
+    tickets = list(mongo.db.transportation_tickets.find())
     return render_template("transport_tickets.html", tickets=tickets)
 
 @app.route("/travel_buddies")
 def get_travel_buddies():
-    buddies = TravelBuddy.query.all()
+    buddies = list(mongo.db.travel_buddies.find())
     return render_template("travel_buddies.html", buddies=buddies)
 
 # ------------ Add New Entries ------------
 
-# Add a Hotel Room
 @app.route("/add_hotel_room", methods=["POST"])
 def add_hotel_room():
     name = request.form.get("name")
     price = float(request.form.get("price", 0))
     description = request.form.get("description")
-    
-    new_room = HotelRoom(name=name, price=price, description=description, availability=True)
-    db.session.add(new_room)
-    db.session.commit()
-    
+
+    mongo.db.hotel_rooms.insert_one({
+        "name": name,
+        "price": price,
+        "description": description,
+        "availability": True
+    })
     return redirect("/hotel_rooms")
 
 @app.route("/add_penthouse", methods=["POST"])
@@ -105,9 +57,13 @@ def add_penthouse():
     name = request.form.get("name")
     price = float(request.form.get("price", 0))
     description = request.form.get("description")
-    new_penthouse = Penthouse(name=name, price=price, description=description)
-    db.session.add(new_penthouse)
-    db.session.commit()
+
+    mongo.db.penthouses.insert_one({
+        "name": name,
+        "price": price,
+        "description": description,
+        "availability": True
+    })
     return redirect("/penthouses")
 
 @app.route("/add_transport_ticket", methods=["POST"])
@@ -115,20 +71,26 @@ def add_transport_ticket():
     transport_type = request.form.get("transport_type")
     price = float(request.form.get("price", 0))
     description = request.form.get("description")
-    new_ticket = TransportationTicket(transport_type=transport_type, price=price, description=description)
-    db.session.add(new_ticket)
-    db.session.commit()
+
+    mongo.db.transportation_tickets.insert_one({
+        "transport_type": transport_type,
+        "price": price,
+        "description": description,
+        "availability": True
+    })
     return redirect("/transport_tickets")
 
-# Add a Travel Buddy
 @app.route("/add_travel_buddy", methods=["POST"])
 def add_travel_buddy():
     name = request.form.get("name")
     destination = request.form.get("destination")
     description = request.form.get("description")
-    new_buddy = TravelBuddy(name=name, destination=destination, description=description)
-    db.session.add(new_buddy)
-    db.session.commit()
+
+    mongo.db.travel_buddies.insert_one({
+        "name": name,
+        "destination": destination,
+        "description": description
+    })
     return redirect("/travel_buddies")
 
 # ------------ Admin Auth Routes ------------
@@ -143,15 +105,15 @@ def admin_signup():
             flash("All fields are required.", "danger")
             return redirect(url_for("admin_signup"))
 
-        if Admin.query.filter_by(username=username).first():
+        if mongo.db.admins.find_one({"username": username}):
             flash("Username already exists.", "danger")
             return redirect(url_for("admin_signup"))
 
-        new_admin = Admin(username=username)
-        new_admin.set_password(password)
-        db.session.add(new_admin)
-        db.session.commit()
-
+        hashed_password = generate_password_hash(password)
+        mongo.db.admins.insert_one({
+            "username": username,
+            "password_hash": hashed_password
+        })
         flash("Admin account created successfully.", "success")
         return redirect(url_for("admin_login"))
 
@@ -162,10 +124,11 @@ def admin_login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        admin = Admin.query.filter_by(username=username).first()
 
-        if admin and admin.check_password(password):
-            session["admin_id"] = admin.id
+        admin = mongo.db.admins.find_one({"username": username})
+
+        if admin and check_password_hash(admin["password_hash"], password):
+            session["admin_id"] = str(admin["_id"])
             flash("Login successful!", "success")
             return redirect(url_for("admin_dashboard"))
         else:
@@ -187,7 +150,7 @@ def admin_settings():
         flash("Please login first.", "danger")
         return redirect(url_for("admin_login"))
 
-    admin = Admin.query.get(session["admin_id"])
+    admin = mongo.db.admins.find_one({"_id": ObjectId(session["admin_id"])})
 
     if request.method == "POST":
         username = request.form.get("username")
@@ -200,8 +163,9 @@ def admin_settings():
             flash("Username and email are required.", "danger")
             return redirect(url_for("admin_settings"))
 
-        existing_user = Admin.query.filter(Admin.username == username, Admin.id != admin.id).first()
-        existing_email = Admin.query.filter(Admin.email == email, Admin.id != admin.id).first()
+        existing_user = mongo.db.admins.find_one({"username": username, "_id": {"$ne": admin["_id"]}})
+        existing_email = mongo.db.admins.find_one({"email": email, "_id": {"$ne": admin["_id"]}})
+
         if existing_user:
             flash("Username already taken.", "danger")
             return redirect(url_for("admin_settings"))
@@ -209,15 +173,17 @@ def admin_settings():
             flash("Email already used.", "danger")
             return redirect(url_for("admin_settings"))
 
-        admin.username = username
-        admin.email = email
-        admin.address = address
-        admin.description = description
+        updates = {
+            "username": username,
+            "email": email,
+            "address": address,
+            "description": description
+        }
 
         if new_password:
-            admin.set_password(new_password)
+            updates["password_hash"] = generate_password_hash(new_password)
 
-        db.session.commit()
+        mongo.db.admins.update_one({"_id": admin["_id"]}, {"$set": updates})
         flash("Settings updated successfully.", "success")
         return redirect(url_for("admin_profile"))
 
@@ -229,7 +195,7 @@ def admin_profile():
         flash("Please login first.", "danger")
         return redirect(url_for("admin_login"))
 
-    admin = Admin.query.get(session["admin_id"])
+    admin = mongo.db.admins.find_one({"_id": ObjectId(session["admin_id"])})
     return render_template("admin/profile.html", admin=admin)
 
 @app.route("/admin_logout")
@@ -240,4 +206,4 @@ def admin_logout():
 
 # Run the App
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=8800)
