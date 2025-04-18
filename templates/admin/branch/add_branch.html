@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Branch</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fff8e1;
+            color: #333;
+            padding: 40px;
+        }
+
+        h2 {
+            color: #ff9800;
+            margin-bottom: 20px;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border: 2px solid #ffcc80;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: auto;
+        }
+
+        label {
+            font-weight: bold;
+            color: #f57c00;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ffa726;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #f57c00;
+        }
+    </style>
+</head>
+<body>
+    <h2>Add Branch</h2>
+    <form action="{{ url_for('add_branch') }}" method="POST">
+        <label>Division</label>
+        <select name="name" required>
+            <option value="">Select Division</option>
+            <option value="Dhaka">Dhaka</option>
+            <option value="Chattogram">Chattogram</option>
+            <option value="Sylhet">Sylhet</option>
+            <option value="Khulna">Khulna</option>
+            <option value="Rajshahi">Rajshahi</option>
+            <option value="Barisal">Barisal</option>
+            <option value="Rangpur">Rangpur</option>
+            <option value="Mymensingh">Mymensingh</option>
+        </select>
+
+        <label>Email</label>
+        <input type="email" name="email" required>
+
+        <label>Phone</label>
+        <input type="text" name="phone" required>
+
+        <label>Address</label>
+        <input type="text" name="address" required>
+
+        <label>Details</label>
+        <textarea name="details" rows="4"></textarea>
+
+        <button type="submit">Add Branch</button>
+    </form>
+</body>
+</html>

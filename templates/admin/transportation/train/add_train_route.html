@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Train Route</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #f0f2f5;
+        }
+        .container {
+            max-width: 600px;
+            background: #fff;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #ff6600;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        select, input[type="number"], input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 20px;
+            background: #ff6600;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #e55d00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Add Train Route</h2>
+        <form method="POST">
+            <label for="origin">Origin</label>
+            <select name="origin" id="origin" required>
+                <option value="" disabled selected>Select origin</option>
+                {% for branch in branches %}
+                    <option value="{{ branch.name }}">{{ branch.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="destination">Destination</label>
+            <select name="destination" id="destination" required>
+                <option value="" disabled selected>Select destination</option>
+            </select>
+
+            <label for="date">Date</label>
+            <input type="date" name="date" required>
+
+            <label for="fare">Fare (BDT)</label>
+            <input type="number" name="fare" step="0.01" required>
+
+            <label for="available_tickets">Available Tickets</label>
+            <input type="number" name="available_tickets" required>
+
+            <button type="submit">Add Route</button>
+        </form>
+    </div>
+
+    <script>
+        const branches = {{ branches|tojson }};
+        const originSelect = document.getElementById("origin");
+        const destinationSelect = document.getElementById("destination");
+
+        function populateDestinationOptions() {
+            const selectedOrigin = originSelect.value;
+            destinationSelect.innerHTML = '<option value="" disabled selected>Select destination</option>';
+            branches.forEach(branch => {
+                if (branch.name !== selectedOrigin) {
+                    const option = document.createElement("option");
+                    option.value = branch.name;
+                    option.textContent = branch.name;
+                    destinationSelect.appendChild(option);
+                }
+            });
+        }
+
+        originSelect.addEventListener("change", populateDestinationOptions);
+    </script>
+</body>
+</html>

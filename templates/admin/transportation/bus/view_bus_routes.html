@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Bus Routes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        body {
+            background-color: #f0f8ff;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #ff7f50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        table th {
+            background-color: #ff7f50;
+            color: white;
+        }
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        table tr:hover {
+            background-color: #f1f1f1;
+        }
+        .btn-primary {
+            background-color: #ff7f50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+            display: inline-block;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #e76f3d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>View Bus Routes</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Origin</th>
+                    <th>Destination</th>
+                    <th>Date</th>
+                    <th>Fare</th>
+                    <th>Available Tickets</th>
+                    <th>Origin Branch Contact</th>
+                    <th>Destination Branch Contact</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for route in bus_routes %}
+                <tr>
+                    <td>{{ route.origin }}</td>
+                    <td>{{ route.destination }}</td>
+                    <td>{{ route.date }}</td>
+                    <td>{{ route.fare }}</td>
+                    <td>{{ route.available_tickets }}</td>
+                    <td>{{ route.origin_branch_contact }}</td>
+                    <td>{{ route.destination_branch_contact }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('add_bus_route') }}" class="btn btn-primary">Add New Bus Route</a>
+    </div>
+</body>
+</html>
