@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, flash, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_migrate import Migrate
 
 app = Flask(__name__)
 
@@ -11,7 +10,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = "ticket_booking_secret"
 
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
 # ------------ Models ------------
 
@@ -69,7 +67,7 @@ def home():
 @app.route("/hotel_rooms", methods=["GET"])
 def get_hotel_rooms():
     rooms = HotelRoom.query.all()
-    return render_template("hotel_rooms_1069.html", rooms=rooms)
+    return render_template("hotel_rooms.html", rooms=rooms)
 
 # Get Penthouse Options
 @app.route("/penthouses", methods=["GET"])
@@ -243,28 +241,3 @@ def admin_logout():
 # Run the App
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
-
-from flask.cli import with_appcontext
-import click
-from flask_migrate import upgrade, migrate, init, stamp
-
-@app.cli.command("db_init")
-@with_appcontext
-def db_init():
-    """Initializes migration directory"""
-    init()
-
-@app.cli.command("db_migrate")
-@with_appcontext
-def db_migrate():
-    """Creates migration script"""
-    migrate(message="Initial migration")
-
-@app.cli.command("db_upgrade")
-@with_appcontext
-def db_upgrade():
-    """Applies migrations to database"""
-    upgrade()
