@@ -49,6 +49,7 @@
 
         <!-- User Information -->
         <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Name:</strong> {{ user.name or 'N/A' }}</li>
             <li class="list-group-item"><strong>Username:</strong> {{ user.username }}</li>
             <li class="list-group-item"><strong>Email:</strong> {{ user.email }}</li>
             <li class="list-group-item"><strong>Phone:</strong> {{ user.phone or 'N/A' }}</li>

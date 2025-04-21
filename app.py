@@ -27,11 +27,12 @@ def home():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
+        name = request.form.get("name")
         username = request.form.get("username")
         email = request.form.get("email")
         password = request.form.get("password")
 
-        if not username or not email or not password:
+        if not name or not username or not email or not password:
             flash("All fields are required.", "danger")
             return redirect(url_for("register"))
 
@@ -40,7 +41,9 @@ def register():
             return redirect(url_for("register"))
 
         hashed_password = generate_password_hash(password)
+
         mongo.db.users.insert_one({
+            "name": name,
             "username": username,
             "email": email,
             "password_hash": hashed_password
@@ -50,6 +53,7 @@ def register():
         return redirect(url_for("login"))
 
     return render_template("user/register.html")
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -123,7 +127,6 @@ def user_profile():
 ######################################################################################
 
 # ------------ Admin Auth Routes ------------
-
 @app.route("/admin_signup", methods=["GET", "POST"])
 def admin_signup():
     if request.method == "POST":
@@ -144,9 +147,10 @@ def admin_signup():
             "password_hash": hashed_password
         })
         flash("Admin account created successfully.", "success")
-        return redirect(url_for("admin_login"))
+        return redirect(url_for("manage_admins"))
 
-    return render_template("admin/signup.html")
+    prefilled_username = request.args.get('username', '')
+    return render_template("admin/signup.html", username=prefilled_username)
 
 @app.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
@@ -171,7 +175,8 @@ def admin_dashboard():
         flash("Login required.", "danger")
         return redirect(url_for("admin_login"))
 
-    return render_template("admin/dashboard.html")
+    total_users = mongo.db.users.count_documents({})
+    return render_template("admin/dashboard.html", total_users=total_users)
 
 @app.route("/admin/settings", methods=["GET", "POST"])
 def admin_settings():
@@ -218,7 +223,6 @@ def admin_settings():
 
     return render_template("admin/settings.html", admin=admin)
 
-
 @app.route("/admin/profile")
 def admin_profile():
     if "admin_id" not in session:
@@ -234,6 +238,39 @@ def admin_logout():
     flash("Logged out successfully.", "success")
     return redirect(url_for("admin_login"))
 
+# ------------------- View Users -------------------
+@app.route('/admin/users')
+def view_users():
+    users = list(mongo.db.users.find())
+    return render_template('admin/view_users.html', users=users)
+
+# ------------------- Delete User -------------------
+@app.route('/admin/users/delete/<user_id>', methods=['POST'])
+def delete_user(user_id):
+    mongo.db.users.delete_one({'_id': ObjectId(user_id)})
+    return redirect(url_for('view_users'))
+
+# ------------------- Manage Admins -------------------
+@app.route('/admin/manage-admins')
+def manage_admins():
+    users = list(mongo.db.users.find())
+    admin_usernames = set(admin["username"] for admin in mongo.db.admins.find({}, {"username": 1}))
+    return render_template('admin/manage_admins.html', users=users, admin_usernames=admin_usernames)
+
+@app.route('/admin/make-admin/<user_id>')
+def make_admin(user_id):
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for('manage_admins'))
+
+    # Check if already admin
+    if mongo.db.admins.find_one({"username": user["username"]}):
+        flash("User is already an admin.", "info")
+        return redirect(url_for("manage_admins"))
+
+    # Redirect to signup with prefilled username
+    return redirect(url_for('admin_signup', username=user['username']))
 ##################################################################################################
 
 @app.route("/hotel_rooms", methods=["GET"])

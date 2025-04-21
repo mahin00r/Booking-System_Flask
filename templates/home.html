@@ -18,7 +18,6 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-light px-4">
         <a class="navbar-brand" href="#">Ticket Booking System</a>
         <div class="ms-auto d-flex align-items-center gap-2">
-            <a href="{{ url_for('admin_signup') }}" class="btn btn-sm btn-primary navbar-btn">Admin Signup</a>
             <a href="{{ url_for('admin_login') }}" class="btn btn-sm btn-warning navbar-btn">Admin Login</a>
 
             {% if session.get('user_id') %}

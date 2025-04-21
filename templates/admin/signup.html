@@ -89,7 +89,7 @@
         <h1>Sign Up</h1>
         <form action="{{ url_for('admin_signup') }}" method="POST">
             <label for="username">Username:</label>
-            <input type="text" name="username" required><br><br>
+            <input type="text" name="username" class="form-control" value="{{ username }}" required>
 
             <label for="password">Password:</label>
             <input type="password" name="password" required><br><br>

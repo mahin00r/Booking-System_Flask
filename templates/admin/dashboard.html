@@ -100,9 +100,9 @@
         <div class="sidebar p-3">
             <h4 class="text-center mb-4">Admin Panel</h4>
             <a href="#" class="nav-link">Dashboard</a>
-            <a href="#" class="nav-link">Users</a>
             <a href="#" class="nav-link">Orders</a>
-            <a href="#" class="nav-link">Branch</a>
+            <a href="{{ url_for('manage_admins') }}" class="nav-link">Admins</a>
+
             <div class="dropdown">
                 <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Branch</a>
                 <ul class="dropdown-menu bg-dark border-0">
@@ -157,6 +157,16 @@
                         <div class="card text-white bg-primary mb-3">
                             <div class="card-body">
                                 <h5 class="card-title">Total Users</h5>
+                                <div class="col-md-4">
+                                    <a href="{{ url_for('view_users') }}" style="text-decoration: none;">
+                                        <div class="card text-white bg-primary mb-3">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Total</h5>
+                                                <p class="card-text">{{ total_users }}</p> 
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
                                 <p class="card-text">...</p>
                             </div>
                         </div>
