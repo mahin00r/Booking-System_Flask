@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.secret_key = "ticket_booking_secret"
 
 # MongoDB Configuration
-app.config["MONGO_URI"] = "mongodb+srv://root:Samir323%40@all-ticket-booking-syst.2qrnrhs.mongodb.net/ticket_booking?retryWrites=true&w=majority&appName=ALL-Ticket-Booking-System"
+app.config["MONGO_URI"] = "mongodb+srv://admin:Admin123@all-ticket-booking-syst.2qrnrhs.mongodb.net/ticket_booking?retryWrites=true&w=majority&appName=ALL-Ticket-Booking-System"
 mongo = PyMongo(app)
 
 # ------------ Public Routes ------------
