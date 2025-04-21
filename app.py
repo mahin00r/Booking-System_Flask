@@ -16,9 +16,225 @@ mongo = PyMongo(app)
 
 # ------------ Public Routes ------------
 
+# ------------ User Auth Routes ------------
+
 @app.route("/")
 def home():
-    return render_template("home.html")
+    return redirect(url_for("register"))  # 🔁 Redirect to register page if not logged in
+
+# ------------ User Auth Routes ------------
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        if not username or not email or not password:
+            flash("All fields are required.", "danger")
+            return redirect(url_for("register"))
+
+        if mongo.db.users.find_one({"email": email}):
+            flash("Email already registered.", "danger")
+            return redirect(url_for("register"))
+
+        hashed_password = generate_password_hash(password)
+        mongo.db.users.insert_one({
+            "username": username,
+            "email": email,
+            "password_hash": hashed_password
+        })
+
+        flash("User registered successfully. Please login.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("user/register.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        user = mongo.db.users.find_one({"email": email})
+        if user and check_password_hash(user["password_hash"], password):
+            session["user_id"] = str(user["_id"])
+            flash("Login successful!", "success")
+            return render_template("home.html") 
+        else:
+            flash("Invalid credentials.", "danger")
+
+    return render_template("user/login.html")
+
+@app.route("/logout")
+def logout():
+    session.pop("user_id", None)
+    flash("Logged out successfully.", "success")
+    return render_template("user/register.html")
+
+
+# Settings Page
+@app.route("/user/settings", methods=["GET", "POST"])
+def user_settings():
+    if "user_id" not in session:
+        flash("Login required.", "danger")
+        return redirect(url_for("login"))
+
+    user = mongo.db.users.find_one({"_id": ObjectId(session["user_id"])})
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        email = request.form.get("email")
+        phone = request.form.get("phone")
+        address = request.form.get("address")
+        description = request.form.get("description")
+        profile_pic = request.form.get("profile_pic")
+        new_password = request.form.get("password")
+
+        updates = {
+            "username": username,
+            "email": email,
+            "phone": phone,
+            "address": address,
+            "description": description,
+            "profile_pic": profile_pic if profile_pic else user.get("profile_pic")
+        }
+
+        if new_password:
+            updates["password_hash"] = generate_password_hash(new_password)
+
+        mongo.db.users.update_one({"_id": user["_id"]}, {"$set": updates})
+        flash("Profile updated successfully.", "success")
+        return redirect(url_for("user_profile"))
+
+    return render_template("user/settings.html", user=user)
+
+@app.route("/user/profile")
+def user_profile():
+    if "user_id" not in session:
+        flash("Login required.", "danger")
+        return redirect(url_for("login"))
+
+    user = mongo.db.users.find_one({"_id": ObjectId(session["user_id"])})
+    return render_template("user/profile.html", user=user)
+
+
+######################################################################################
+
+# ------------ Admin Auth Routes ------------
+
+@app.route("/admin_signup", methods=["GET", "POST"])
+def admin_signup():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if not username or not password:
+            flash("All fields are required.", "danger")
+            return redirect(url_for("admin_signup"))
+
+        if mongo.db.admins.find_one({"username": username}):
+            flash("Username already exists.", "danger")
+            return redirect(url_for("admin_signup"))
+
+        hashed_password = generate_password_hash(password)
+        mongo.db.admins.insert_one({
+            "username": username,
+            "password_hash": hashed_password
+        })
+        flash("Admin account created successfully.", "success")
+        return redirect(url_for("admin_login"))
+
+    return render_template("admin/signup.html")
+
+@app.route("/admin_login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        admin = mongo.db.admins.find_one({"username": username})
+
+        if admin and check_password_hash(admin["password_hash"], password):
+            session["admin_id"] = str(admin["_id"])
+            flash("Login successful!", "success")
+            return redirect(url_for("admin_dashboard"))
+        else:
+            flash("Invalid credentials.", "danger")
+
+    return render_template("admin/login.html")
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    if "admin_id" not in session:
+        flash("Login required.", "danger")
+        return redirect(url_for("admin_login"))
+
+    return render_template("admin/dashboard.html")
+
+@app.route("/admin/settings", methods=["GET", "POST"])
+def admin_settings():
+    if "admin_id" not in session:
+        flash("Please login first.", "danger")
+        return redirect(url_for("admin_login"))
+
+    admin = mongo.db.admins.find_one({"_id": ObjectId(session["admin_id"])})
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        email = request.form.get("email")
+        address = request.form.get("address")
+        description = request.form.get("description")
+        new_password = request.form.get("password")
+
+        if not username or not email:
+            flash("Username and email are required.", "danger")
+            return redirect(url_for("admin_settings"))
+
+        existing_user = mongo.db.admins.find_one({"username": username, "_id": {"$ne": admin["_id"]}})
+        existing_email = mongo.db.admins.find_one({"email": email, "_id": {"$ne": admin["_id"]}})
+
+        if existing_user:
+            flash("Username already taken.", "danger")
+            return redirect(url_for("admin_settings"))
+        if existing_email:
+            flash("Email already used.", "danger")
+            return redirect(url_for("admin_settings"))
+
+        updates = {
+            "username": username,
+            "email": email,
+            "address": address,
+            "description": description
+        }
+
+        if new_password:
+            updates["password_hash"] = generate_password_hash(new_password)
+
+        mongo.db.admins.update_one({"_id": admin["_id"]}, {"$set": updates})
+        flash("Settings updated successfully.", "success")
+        return redirect(url_for("admin_profile"))
+
+    return render_template("admin/settings.html", admin=admin)
+
+
+@app.route("/admin/profile")
+def admin_profile():
+    if "admin_id" not in session:
+        flash("Please login first.", "danger")
+        return redirect(url_for("admin_login"))
+
+    admin = mongo.db.admins.find_one({"_id": ObjectId(session["admin_id"])})
+    return render_template("admin/profile.html", admin=admin)
+
+@app.route("/admin_logout")
+def admin_logout():
+    session.pop("admin_id", None)
+    flash("Logged out successfully.", "success")
+    return redirect(url_for("admin_login"))
+
+##################################################################################################
 
 @app.route("/hotel_rooms", methods=["GET"])
 def get_hotel_rooms():
@@ -329,118 +545,6 @@ def add_travel_buddy():
         "description": description
     })
     return redirect("/travel_buddies")
-
-# ------------ Admin Auth Routes ------------
-
-@app.route("/admin_signup", methods=["GET", "POST"])
-def admin_signup():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        if not username or not password:
-            flash("All fields are required.", "danger")
-            return redirect(url_for("admin_signup"))
-
-        if mongo.db.admins.find_one({"username": username}):
-            flash("Username already exists.", "danger")
-            return redirect(url_for("admin_signup"))
-
-        hashed_password = generate_password_hash(password)
-        mongo.db.admins.insert_one({
-            "username": username,
-            "password_hash": hashed_password
-        })
-        flash("Admin account created successfully.", "success")
-        return redirect(url_for("admin_login"))
-
-    return render_template("admin/signup.html")
-
-@app.route("/admin_login", methods=["GET", "POST"])
-def admin_login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        admin = mongo.db.admins.find_one({"username": username})
-
-        if admin and check_password_hash(admin["password_hash"], password):
-            session["admin_id"] = str(admin["_id"])
-            flash("Login successful!", "success")
-            return redirect(url_for("admin_dashboard"))
-        else:
-            flash("Invalid credentials.", "danger")
-
-    return render_template("admin/login.html")
-
-@app.route("/admin/dashboard")
-def admin_dashboard():
-    if "admin_id" not in session:
-        flash("Login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    return render_template("admin/dashboard.html")
-
-@app.route("/admin/settings", methods=["GET", "POST"])
-def admin_settings():
-    if "admin_id" not in session:
-        flash("Please login first.", "danger")
-        return redirect(url_for("admin_login"))
-
-    admin = mongo.db.admins.find_one({"_id": ObjectId(session["admin_id"])})
-
-    if request.method == "POST":
-        username = request.form.get("username")
-        email = request.form.get("email")
-        address = request.form.get("address")
-        description = request.form.get("description")
-        new_password = request.form.get("password")
-
-        if not username or not email:
-            flash("Username and email are required.", "danger")
-            return redirect(url_for("admin_settings"))
-
-        existing_user = mongo.db.admins.find_one({"username": username, "_id": {"$ne": admin["_id"]}})
-        existing_email = mongo.db.admins.find_one({"email": email, "_id": {"$ne": admin["_id"]}})
-
-        if existing_user:
-            flash("Username already taken.", "danger")
-            return redirect(url_for("admin_settings"))
-        if existing_email:
-            flash("Email already used.", "danger")
-            return redirect(url_for("admin_settings"))
-
-        updates = {
-            "username": username,
-            "email": email,
-            "address": address,
-            "description": description
-        }
-
-        if new_password:
-            updates["password_hash"] = generate_password_hash(new_password)
-
-        mongo.db.admins.update_one({"_id": admin["_id"]}, {"$set": updates})
-        flash("Settings updated successfully.", "success")
-        return redirect(url_for("admin_profile"))
-
-    return render_template("admin/settings.html", admin=admin)
-
-
-@app.route("/admin/profile")
-def admin_profile():
-    if "admin_id" not in session:
-        flash("Please login first.", "danger")
-        return redirect(url_for("admin_login"))
-
-    admin = mongo.db.admins.find_one({"_id": ObjectId(session["admin_id"])})
-    return render_template("admin/profile.html", admin=admin)
-
-@app.route("/admin_logout")
-def admin_logout():
-    session.pop("admin_id", None)
-    flash("Logged out successfully.", "success")
-    return redirect(url_for("admin_login"))
 
 # ------------ Branch Management ------------
 
