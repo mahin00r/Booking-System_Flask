@@ -3,56 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <title>Add Hotel Room</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body {
-            background: linear-gradient(to right, #fdfbfb, #ebedee);
+            background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            padding-top: 40px;
         }
 
         .form-container {
-            background-color: #fff;
+            background: rgba(255, 255, 255, 0.95);
             padding: 40px;
             border-radius: 16px;
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
-            width: 100%;
+            box-shadow: 0px 4px 25px rgba(0, 0, 0, 0.1);
             max-width: 700px;
+            margin: auto;
         }
 
         .form-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 30px;
+            font-weight: 700;
+            color: #2c3e50;
             text-align: center;
+            margin-bottom: 30px;
         }
 
         .form-label {
             font-weight: 500;
+            color: #34495e;
         }
 
         .btn-primary {
-            width: 100%;
-            padding: 12px;
+            background-color: #1abc9c;
+            border: none;
             font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background-color: #16a085;
         }
     </style>
 </head>
 <body>
     <div class="form-container">
-        <h2 class="form-title">🛏️ Add Hotel Room</h2>
-        <form method="POST" action="{{ url_for('add_new_hotel_room') }}" enctype="multipart/form-data">
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="room_type" class="form-label">Room Type</label>
-                    <input type="text" class="form-control" id="room_type" name="room_type" placeholder="e.g. Deluxe Suite" required>
-                </div>
-                <div class="col-md-6">
-                    <label for="beds" class="form-label">Number of Beds</label>
-                    <input type="number" class="form-control" id="beds" name="beds" min="1" required>
-                </div>
+        <h2 class="form-title">🛏️ Add New Hotel Room</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('add_new_hotel_room') }}">
+            <div class="mb-3">
+                <label for="room_type" class="form-label">Room Type</label>
+                <input type="text" class="form-control" id="room_type" name="room_type" placeholder="e.g. Deluxe Suite" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="beds" class="form-label">Number of Beds</label>
+                <input type="number" class="form-control" id="beds" name="beds" min="1" required>
             </div>
 
             <div class="mb-3">
@@ -60,15 +76,14 @@
                 <input type="text" class="form-control" id="amenities" name="amenities" placeholder="WiFi, TV, Mini Bar">
             </div>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="price" class="form-label">Price per Night (USD)</label>
-                    <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
-                </div>
-                <div class="col-md-6">
-                    <label for="image" class="form-label">Room Image</label>
-                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                </div>
+            <div class="mb-3">
+                <label for="price" class="form-label">Price per Night (USD)</label>
+                <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="image_url" class="form-label">Image URL</label>
+                <input type="url" class="form-control" id="image_url" name="image_url" placeholder="https://example.com/image.jpg" required>
             </div>
 
             <div class="mb-3">
@@ -76,11 +91,41 @@
                 <textarea class="form-control" id="description" name="description" rows="4" placeholder="Brief description of the room"></textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary">Add Room</button>
+            <button type="submit" class="btn btn-primary w-100">Add Room</button>
         </form>
     </div>
+
+    {% if rooms %}
+    <div class="container mt-5">
+        <hr>
+        <h4 class="text-center text-white">🖼️ Recently Added Hotel Rooms</h4>
+        <div class="row mt-4">
+            {% for room in rooms %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <img src="{{ room.image_url }}" class="card-img-top" alt="Room Image" style="height: 200px; object-fit: cover;">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ room.room_type }}</h5>
+                        <p class="card-text"><strong>Beds:</strong> {{ room.beds }}</p>
+                        <p class="card-text"><strong>Price:</strong> ${{ room.price }} per night</p>
+                        <p class="card-text"><strong>Amenities:</strong> {{ room.amenities }}</p>
+                        <p class="card-text text-muted small">{{ room.description }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
+
+
+
+
 
 
 

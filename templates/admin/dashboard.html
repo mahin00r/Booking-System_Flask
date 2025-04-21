@@ -74,6 +74,24 @@
         .logout-link:hover {
             color: #ff4d4d !important;
         }
+
+        /* Button Styling for Manage Rooms, Manage Penthouse, and Manage Buddies */
+        .btn-manage {
+            background-color: #007bff; /* Change color here */
+            color: #fff;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-align: center;
+            display: inline-block;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-manage:hover {
+            background-color: #0056b3; /* Change hover color here */
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -109,14 +127,10 @@
                 </ul>
             </div>
             <a href="{{ url_for('add_new_penthouse') }}" class="nav-link">Add Penthouse</a>
-
             <a href="{{ url_for('add_new_hotel_room') }}" class="nav-link">Add Hotel Room</a>
-            <a href="{{ url_for('manage_hotel_rooms') }}" class="btn btn-outline-primary">Manage Rooms</a>
-            <a class="nav-link" href="{{ url_for('manage_penthouses') }}">🏢 Manage Penthouses</a>
-
-
-
-
+            <a href="{{ url_for('manage_hotel_rooms') }}" class="btn-manage">Manage Rooms</a> <!-- Same styling here -->
+            <a href="{{ url_for('manage_penthouses') }}" class="btn-manage">Manage Penthouses</a> <!-- Same styling here -->
+            <a href="{{ url_for('admin_manage_buddies') }}" class="btn-manage">Manage Buddies</a> <!-- Same styling here -->
 
             <div class="mt-auto pt-4">
                 <a href="{{ url_for('admin_profile') }}" class="nav-link">Profile</a>
@@ -172,3 +186,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </body>
 </html>
+
+
+
+
