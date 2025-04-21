@@ -2,14 +2,12 @@ from flask import Flask, render_template, request, redirect, flash, session, url
 from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
-from datetime import datetime
-
 
 app = Flask(__name__)
 app.secret_key = "ticket_booking_secret"
 
 # MongoDB Configuration
-app.config["MONGO_URI"] = "mongodb+srv://root:Samir323%40@all-ticket-booking-syst.2qrnrhs.mongodb.net/ticket_booking?retryWrites=true&w=majority&appName=ALL-Ticket-Booking-System"
+app.config["MONGO_URI"] = "mongodb+srv://admin:Admin123@all-ticket-booking-syst.2qrnrhs.mongodb.net/ticket_booking?retryWrites=true&w=majority&appName=ALL-Ticket-Booking-System"
 mongo = PyMongo(app)
 
 # ------------ Public Routes ------------
@@ -53,6 +51,43 @@ def add_hotel_room():
         "availability": True
     })
     return redirect("/hotel_rooms")
+#st
+@app.route('/admin/add_new_hotel_room', methods=['GET', 'POST'])
+def add_new_hotel_room():
+    if request.method == 'POST':
+        room_type = request.form['room_type']
+        beds = request.form['beds']
+        amenities = request.form['amenities']
+        price = request.form['price']
+        description = request.form['description']
+        image = request.files['image']
+
+        # Save the image to the 'static/uploads' directory
+        if image:
+            image_path = os.path.join('static/uploads', image.filename)
+            image.save(image_path)
+        else:
+            image_path = None
+
+        # Create a dictionary to store room data
+        room_data = {
+            'room_type': room_type,
+            'beds': beds,
+            'amenities': amenities.split(','),
+            'price': price,
+            'description': description,
+            'image': image_path
+        }
+
+        # Insert the room data into the MongoDB collection
+        mongo.db.hotel_rooms.insert_one(room_data)
+
+        flash("Hotel room added successfully!", "success")
+        return redirect(url_for('add_new_hotel_room'))
+
+    return render_template('add_new_hotel_room.html')
+
+#end
 
 @app.route("/add_penthouse", methods=["POST"])
 def add_penthouse():
@@ -68,6 +103,126 @@ def add_penthouse():
     })
     return redirect("/penthouses")
 
+
+@app.route('/admin/new-penthouse', methods=['GET', 'POST'])
+def add_new_penthouse():
+    if request.method == 'POST':
+        # Get form data
+        title = request.form.get('title')
+        location = request.form.get('location')
+        price = float(request.form.get('price'))
+        features = request.form.get('features')
+        image_url = request.form.get('image_url')
+
+        # Data structure to insert
+        penthouse_data = {
+            "title": title,
+            "location": location,
+            "price": price,
+            "features": features,
+            "image_url": image_url
+        }
+
+        # Insert into MongoDB
+        mongo.db.penthouses.insert_one(penthouse_data)
+
+        flash("Penthouse added and saved to database!", "success")
+        return redirect(url_for('add_new_penthouse'))
+
+    return render_template('admin/new_penthouse.html')
+#kk
+@app.route('/book_penthouse/<penthouse_id>', methods=['POST'])
+def book_penthouse(penthouse_id):
+    penthouse = mongo.db.penthouses.find_one({'_id': ObjectId(penthouse_id)})
+    if penthouse:
+        mongo.db.bookings.insert_one({
+            'penthouse_id': penthouse['_id'],
+            'title': penthouse['title'],
+            'price': penthouse['price'],
+            'location': penthouse['location'],
+            'features': penthouse['features'],
+            'image_url': penthouse.get('image_url', ''),
+            'status': 'booked'
+        })
+        flash("Penthouse booked successfully!", "success")
+    else:
+        flash("Penthouse not found!", "danger")
+    return redirect(url_for('view_penthouses'))
+#kk
+
+#tt
+@app.route('/book-room/<room_id>')
+def book_room(room_id):
+    room = mongo.db.hotel_rooms.find_one({"_id": room_id})
+    if room:
+        # Create a booking document in the bookings collection
+        booking = {
+            "room_id": room["_id"],
+            "room_type": room["room_type"],
+            "price": room["price"],
+            "user_id": "user_123",  # This should be dynamically tied to the logged-in user
+            "status": "booked"
+        }
+        mongo.db.bookings.insert_one(booking)
+        flash(f"Room {room['room_type']} has been successfully booked!", "success")
+    return redirect(url_for('hotel_rooms'))
+#tt
+
+#ss
+@app.route('/admin/add_room', methods=['GET', 'POST'])
+def add_room():
+    if request.method == 'POST':
+        room_type = request.form['room_type']
+        description = request.form['description']
+        price = request.form['price']
+        image = request.files['image']
+
+        # Save the image and handle file path here
+        if image:
+            image_path = 'static/uploads/' + image.filename
+            image.save(image_path)
+
+        # Insert the new room into the database
+        mongo.db.hotel_rooms.insert_one({
+            'room_type': room_type,
+            'description': description,
+            'price': price,
+            'image': image_path
+        })
+
+        flash("New room added successfully!", "success")
+        return redirect(url_for('hotel_rooms'))
+
+    return render_template('add_room.html')
+#ss
+
+#nn
+# Route: View + Delete Rooms
+@app.route('/admin/manage-rooms')
+def manage_hotel_rooms():
+    rooms = mongo.db.hotel_rooms.find()
+    return render_template('admin/manage_hotel_rooms.html', rooms=rooms)
+
+@app.route('/admin/delete-room/<room_id>', methods=['POST'])
+def delete_hotel_room(room_id):
+    mongo.db.hotel_rooms.delete_one({'_id': ObjectId(room_id)})
+    return redirect(url_for('manage_hotel_rooms'))
+#nn
+
+#mm
+# Display all penthouses
+@app.route('/manage_penthouses')
+def manage_penthouses():
+    penthouses = list(mongo.db.penthouses.find())
+    return render_template('manage_penthouses.html', penthouses=penthouses)
+
+# Delete a specific penthouse
+@app.route('/delete_penthouse/<penthouse_id>', methods=['POST'])
+def delete_penthouse(penthouse_id):
+    mongo.db.penthouses.delete_one({'_id': ObjectId(penthouse_id)})
+    flash('Penthouse deleted successfully!', 'success')
+    return redirect(url_for('manage_penthouses'))
+#mm
 @app.route("/add_transport_ticket", methods=["POST"])
 def add_transport_ticket():
     transport_type = request.form.get("transport_type")
@@ -191,6 +346,7 @@ def admin_settings():
 
     return render_template("admin/settings.html", admin=admin)
 
+
 @app.route("/admin/profile")
 def admin_profile():
     if "admin_id" not in session:
@@ -205,154 +361,6 @@ def admin_logout():
     session.pop("admin_id", None)
     flash("Logged out successfully.", "success")
     return redirect(url_for("admin_login"))
-
-# ------------ Branch Management ------------
-
-@app.route("/admin/branch/add", methods=["GET", "POST"])
-def add_branch():
-    if "admin_id" not in session:
-        flash("Login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        phone = request.form.get("phone")
-        address = request.form.get("address")
-        details = request.form.get("details")
-
-        if not all([name, email, phone, address]):
-            flash("All fields except 'details' are required.", "danger")
-            return redirect(url_for("add_branch"))
-
-        # Insert into 'branches' collection in MongoDB
-        mongo.db.branches.insert_one({
-            "name": name,
-            "email": email,
-            "phone": phone,
-            "address": address,
-            "details": details
-        })
-
-        flash("Branch added successfully.", "success")
-        return redirect(url_for("view_branches"))
-
-    return render_template("admin/branch/add_branch.html")  # Path updated to reflect the correct template location
-
-@app.route("/admin/branch/view")
-def view_branches():
-    if "admin_id" not in session:
-        flash("Login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    branches = list(mongo.db.branches.find())
-    return render_template("admin/branch/view_branches.html", branches=branches)  # Path updated
-
-
-# ------------ Transportation System - Bus Routes ------------
-
-@app.route("/admin/transportation/bus/add", methods=["GET", "POST"])
-def add_bus_route():
-    if "admin_id" not in session:
-        flash("Login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    if request.method == "POST":
-        origin = request.form.get("origin")
-        destination = request.form.get("destination")
-        date = request.form.get("date")
-        fare = request.form.get("fare")
-        available_tickets = request.form.get("available_tickets")
-
-        if not all([origin, destination, date, fare, available_tickets]):
-            flash("All fields are required.", "danger")
-            return redirect(url_for("add_bus_route"))
-
-        origin_branch = mongo.db.branches.find_one({"name": origin})
-        destination_branch = mongo.db.branches.find_one({"name": destination})
-
-        if not origin_branch or not destination_branch:
-            flash("Origin or destination branch does not exist.", "danger")
-            return redirect(url_for("add_bus_route"))
-
-        mongo.db.bus_routes.insert_one({
-            "origin": origin,
-            "destination": destination,
-            "date": datetime.strptime(date, "%Y-%m-%d"),
-            "fare": float(fare),
-            "available_tickets": int(available_tickets),
-            "origin_branch_contact": origin_branch.get("phone"),
-            "destination_branch_contact": destination_branch.get("phone")
-        })
-
-        flash("Bus route added successfully.", "success")
-        return redirect(url_for("view_bus_routes"))
-
-    branches = list(mongo.db.branches.find())
-    return render_template("admin/transportation/bus/add_bus_route.html", branches=branches)
-
-
-@app.route("/admin/transportation/bus/view")
-def view_bus_routes():
-    if "admin_id" not in session:
-        flash("Login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    bus_routes = list(mongo.db.bus_routes.find())
-    return render_template("admin/transportation/bus/view_bus_routes.html", bus_routes=bus_routes)
-
-
-# ------------ Transportation System - Train Routes ------------
-
-@app.route("/admin/transportation/train/add", methods=["GET", "POST"])
-def add_train_route():
-    if "admin_id" not in session:
-        flash("Login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    if request.method == "POST":
-        origin = request.form.get("origin")
-        destination = request.form.get("destination")
-        date = request.form.get("date")
-        fare = request.form.get("fare")
-        available_tickets = request.form.get("available_tickets")
-
-        if not all([origin, destination, date, fare, available_tickets]):
-            flash("All fields are required.", "danger")
-            return redirect(url_for("add_train_route"))
-
-        origin_branch = mongo.db.branches.find_one({"name": origin})
-        destination_branch = mongo.db.branches.find_one({"name": destination})
-
-        if not origin_branch or not destination_branch:
-            flash("Origin or destination branch does not exist.", "danger")
-            return redirect(url_for("add_train_route"))
-
-        mongo.db.train_routes.insert_one({
-            "origin": origin,
-            "destination": destination,
-            "date": datetime.strptime(date, "%Y-%m-%d"),
-            "fare": float(fare),
-            "available_tickets": int(available_tickets),
-            "origin_branch_contact": origin_branch.get("phone"),
-            "destination_branch_contact": destination_branch.get("phone")
-        })
-
-        flash("Train route added successfully.", "success")
-        return redirect(url_for("view_train_routes"))
-
-    branches = list(mongo.db.branches.find())
-    return render_template("admin/transportation/train/add_train_route.html", branches=branches)
-
-
-@app.route("/admin/transportation/train/view")
-def view_train_routes():
-    if "admin_id" not in session:
-        flash("Login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    train_routes = list(mongo.db.train_routes.find())
-    return render_template("admin/transportation/train/view_train_routes.html", train_routes=train_routes)
 
 # Run the App
 if __name__ == "__main__":
