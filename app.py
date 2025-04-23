@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash, session, url_for
+from flask import Flask, render_template, request, redirect, flash, session, url_for, jsonify
 from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
@@ -277,6 +277,78 @@ def make_admin(user_id):
 def get_hotel_rooms():
     rooms = list(mongo.db.hotel_rooms.find())
     return render_template("hotel_rooms.html", rooms=rooms)
+    
+
+
+#sttttt
+# Route to fetch room details (room numbers + their status)
+@app.route('/get-room-details/<room_id>', methods=['GET'])
+def get_room_details(room_id):
+    # Retrieve the room from the database using the room_id
+    room = mongo.db.hotel_rooms.find_one({'_id': ObjectId(room_id)})
+
+    # Check if the room exists
+    if room:
+        room_numbers = room.get('room_numbers', [])
+        
+        # Return room numbers and availability status
+        available_rooms = [{'number': number, 'status': 'available'} for number in room_numbers]
+        return jsonify({'room_numbers': available_rooms})
+    return jsonify({'error': 'Room not found'}), 404
+
+
+@app.route('/book-room', methods=['POST'])
+def book_room():
+    room_id = request.form.get('room_id')
+    room_number = request.form.get('room_number')
+    user_name = request.form.get('user_name')
+
+    if not all([room_id, room_number, user_name]):
+        flash("All fields are required.", "danger")
+        return redirect(url_for('show_rooms'))
+
+    # Mark the selected room number as booked
+    mongo.db.rooms.update_one(
+        {'_id': ObjectId(room_id), 'room_numbers.number': room_number},
+        {'$set': {'room_numbers.$.status': 'booked'}}
+    )
+
+    # Log the reservation
+    mongo.db.reservations.insert_one({
+        'room_id': ObjectId(room_id),
+        'room_number': room_number,
+        'user_name': user_name,
+        'status': 'booked'
+    })
+
+    flash('Room booked successfully!', 'success')
+    return redirect(url_for('show_rooms'))  # Make sure this route exists
+
+
+# Admin view to see all reservations
+@app.route('/admin/reservations')
+def admin_reservations():
+    reservations = list(mongo.db.reservations.find())
+    return render_template('admin/reservations.html', reservations=reservations)
+
+# Admin cancels a reservation and sets room status back to available
+@app.route('/admin/cancel_reservation/<reservation_id>')
+def cancel_reservation(reservation_id):
+    reservation = mongo.db.reservations.find_one({'_id': ObjectId(reservation_id)})
+    if reservation:
+        mongo.db.rooms.update_one(
+            {'_id': reservation['room_id'], 'room_numbers.number': reservation['room_number']},
+            {'$set': {'room_numbers.$.status': 'available'}}
+        )
+        mongo.db.reservations.delete_one({'_id': ObjectId(reservation_id)})
+        flash('Reservation cancelled.', 'warning')
+    return redirect(url_for('admin_reservations'))
+@app.route('/hotel-rooms')
+def show_rooms():
+    rooms = list(mongo.db.rooms.find())
+    return render_template('hotel_rooms.html', rooms=rooms)
+
+#enddddd
 
 @app.route("/penthouses", methods=["GET"])
 def get_penthouses():
@@ -305,7 +377,7 @@ def add_hotel_room():
     })
     return redirect("/hotel_rooms")
 
-#st
+
 @app.route('/add_new_hotel_room', methods=['GET', 'POST'])
 def add_new_hotel_room():
     if request.method == 'POST':
@@ -316,6 +388,7 @@ def add_new_hotel_room():
         price = float(request.form.get('price'))
         image_url = request.form.get('image_url')
         description = request.form.get('description')
+        room_numbers = request.form.getlist('room_numbers[]')  # This will fetch the list of room numbers
 
         # Data structure to insert
         hotel_room_data = {
@@ -324,7 +397,8 @@ def add_new_hotel_room():
             "amenities": amenities,
             "price": price,
             "image_url": image_url,
-            "description": description
+            "description": description,
+            "room_numbers": room_numbers  # Adding room numbers to the data structure
         }
 
         # Insert into MongoDB
@@ -336,8 +410,8 @@ def add_new_hotel_room():
     return render_template('add_new_hotel_room.html')
 
 
-#end
-#travel
+
+
 
 @app.route('/travel_buddies')
 def travel_buddies():
@@ -399,7 +473,7 @@ def admin_manage_buddies():
     buddies = mongo.db.buddies.find()
     return render_template('admin/manage_buddies.html', buddies=buddies)
 
-#travel
+
 
 
 @app.route("/add_penthouse", methods=["POST"])
@@ -443,7 +517,7 @@ def add_new_penthouse():
         return redirect(url_for('add_new_penthouse'))
 
     return render_template('admin/new_penthouse.html')
-#kk
+
 @app.route('/book_penthouse/<penthouse_id>', methods=['POST'])
 def book_penthouse(penthouse_id):
     penthouse = mongo.db.penthouses.find_one({'_id': ObjectId(penthouse_id)})
@@ -461,11 +535,9 @@ def book_penthouse(penthouse_id):
     else:
         flash("Penthouse not found!", "danger")
     return redirect(url_for('view_penthouses'))
-#kk
 
-#tt
 @app.route('/book-room/<room_id>')
-def book_room(room_id):
+def view_room_booking(room_id):
     room = mongo.db.hotel_rooms.find_one({"_id": room_id})
     if room:
         # Create a booking document in the bookings collection
@@ -479,9 +551,7 @@ def book_room(room_id):
         mongo.db.bookings.insert_one(booking)
         flash(f"Room {room['room_type']} has been successfully booked!", "success")
     return redirect(url_for('hotel_rooms'))
-#tt
 
-#ss
 @app.route('/admin/add_room', methods=['GET', 'POST'])
 def add_room():
     if request.method == 'POST':
@@ -507,9 +577,7 @@ def add_room():
         return redirect(url_for('hotel_rooms'))
 
     return render_template('add_room.html')
-#ss
 
-#nn
 # Route: View + Delete Rooms
 @app.route('/admin/manage-rooms')
 def manage_hotel_rooms():
@@ -520,9 +588,7 @@ def manage_hotel_rooms():
 def delete_hotel_room(room_id):
     mongo.db.hotel_rooms.delete_one({'_id': ObjectId(room_id)})
     return redirect(url_for('manage_hotel_rooms'))
-#nn
 
-#mm
 # Display all penthouses
 @app.route('/manage_penthouses')
 def manage_penthouses():

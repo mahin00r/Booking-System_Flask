@@ -1,62 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hotel Rooms</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        body {
-            background-image: url('https://cf.bstatic.com/static/img/theme-index/bg_luxury/869918c9da63b2c5685fce05965700da5b0e6617.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            margin-top: 50px;
-        }
-        .card img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hotel Rooms</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-image: url('https://cf.bstatic.com/static/img/theme-index/bg_luxury/869918c9da63b2c5685fce05965700da5b0e6617.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+      margin-top: 50px;
+    }
+    .card {
+      margin-bottom: 30px;
+    }
+    .card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2 class="text-center">Choose Your Hotel Room</h2>
 
-        <div class="row mt-4">
-            {% for room in rooms %}
-                <div class="col-md-4">
-                    <div class="card text-center p-3">
-                        <img src="{{ room['image_url'] }}" alt="{{ room['room_type'] }} image">
-                        <h4>{{ room['room_type'] }}</h4>
-                        <p>{{ room['description'] }}</p>
-                        <p>Price: ${{ room['price'] }}</p>
-                        <button class="btn btn-primary" onclick="bookRoom('{{ room['_id'] }}')">Book Now</button>
-                    </div>
-                </div>
-            {% endfor %}
+  <div class="container mt-5">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="alert alert-dismissible fade show mt-3" role="alert">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    </div>
+      {% endif %}
+    {% endwith %}
 
-    <script>
-        // JavaScript to handle room booking
-        function bookRoom(roomId) {
-            if (confirm("Are you sure you want to book this room?")) {
-                window.location.href = '/book-room/' + roomId;
+    <h2 class="text-center">Choose Your Hotel Room</h2>
+
+    <div class="row mt-4">
+      {% for room in rooms %}
+        <div class="col-md-4">
+          <div class="card text-center p-3">
+            <img src="{{ room['image_url'] }}" alt="{{ room['room_type'] }} image">
+            <h4>{{ room['room_type'] }}</h4>
+            <p>{{ room['description'] }}</p>
+            <p>Price: ${{ room['price'] }}</p>
+            <button class="btn btn-primary" onclick="bookRoom('{{ room['_id'] }}')">Book Now</button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Booking Modal -->
+  <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" method="POST" action="/book-room">
+        <div class="modal-header">
+          <h5 class="modal-title" id="bookingModalLabel">Book a Room</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="room_id" id="room_id_input">
+          <div class="mb-3">
+            <label for="room_number" class="form-label">Select Room Number</label>
+            <select name="room_number" id="room_number" class="form-select" required>
+              <!-- Room numbers inserted here -->
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="user_name" class="form-label">Your Name</label>
+            <input type="text" class="form-control" name="user_name" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- JS for modal & fetch -->
+  <script>
+    function bookRoom(roomId) {
+      fetch(`/get-room-details/${roomId}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('room_id_input').value = roomId;
+
+          const select = document.getElementById('room_number');
+          select.innerHTML = '';
+
+          data.room_numbers.forEach(room => {
+            if (room.status === 'available') {
+              const option = document.createElement('option');
+              option.value = room.number;
+              option.text = `Room ${room.number}`;
+              select.appendChild(option);
             }
-        }
-    </script>
+          });
+
+          new bootstrap.Modal(document.getElementById('bookingModal')).show();
+        })
+        .catch(error => {
+          alert("Error fetching room data. Please try again.");
+          console.error(error);
+        });
+    }
+  </script>
+
 </body>
 </html>
+
+
+
 
 
 
