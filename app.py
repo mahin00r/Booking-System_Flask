@@ -5,6 +5,10 @@ from bson.objectid import ObjectId
 import os
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
+from pymongo import ReturnDocument
+from datetime import datetime
+
+
 
 
 app = Flask(__name__)
@@ -284,46 +288,103 @@ def get_hotel_rooms():
 # Route to fetch room details (room numbers + their status)
 @app.route('/get-room-details/<room_id>', methods=['GET'])
 def get_room_details(room_id):
-    # Retrieve the room from the database using the room_id
     room = mongo.db.hotel_rooms.find_one({'_id': ObjectId(room_id)})
 
-    # Check if the room exists
     if room:
         room_numbers = room.get('room_numbers', [])
-        
-        # Return room numbers and availability status
-        available_rooms = [{'number': number, 'status': 'available'} for number in room_numbers]
+        available_rooms = []
+
+        for room_entry in room_numbers:
+            if isinstance(room_entry, dict):
+                number = room_entry.get('number')
+                status = room_entry.get('status', 'available')
+            else:
+                number = room_entry
+                status = 'available'
+            available_rooms.append({'number': number, 'status': status})
+
         return jsonify({'room_numbers': available_rooms})
+    
     return jsonify({'error': 'Room not found'}), 404
 
 
 @app.route('/book-room', methods=['POST'])
 def book_room():
-    room_id = request.form.get('room_id')
-    room_number = request.form.get('room_number')
-    user_name = request.form.get('user_name')
+    form = request.form
+    room_id = form.get('room_id')
+    room_number = form.get('room_number')
+    user_name = form.get('user_name')
+    email = form.get('email')
+    phone = form.get('phone')
+    checkin_date = form.get('checkin_date')
+    checkout_date = form.get('checkout_date')
+    guests = form.get('guests')
+    bed_type = form.get('bed_type')
+    smoking = form.get('smoking')
+    view_preference = form.get('view_preference')
+    floor_preference = form.get('floor_preference')
+    breakfast = form.get('breakfast', 'No')
+    airport_pickup = form.get('airport_pickup', 'No')
+    late_checkout = form.get('late_checkout', 'No')
+    early_checkin = form.get('early_checkin', 'No')
+    extra_bed = form.get('extra_bed', 'No')
+    facilities = form.get('facilities', 'No')
+    special_requests = form.get('special_requests')
 
-    if not all([room_id, room_number, user_name]):
-        flash("All fields are required.", "danger")
-        return redirect(url_for('show_rooms'))
+    if not all([room_id, room_number, user_name, email, phone, checkin_date, checkout_date]):
+        flash("Please fill in all required fields.", "danger")
+        return redirect(url_for('get_hotel_rooms'))
+
+    # Check if the room number is already booked
+    room = mongo.db.hotel_rooms.find_one({
+        '_id': ObjectId(room_id),
+        'room_numbers': {
+            '$elemMatch': {
+                'number': room_number,
+                'status': 'booked'
+            }
+        }
+    })
+
+    if room:
+        flash(f"Room {room_number} is already booked.", "danger")
+        return redirect(url_for('get_hotel_rooms'))
 
     # Mark the selected room number as booked
-    mongo.db.rooms.update_one(
+    mongo.db.hotel_rooms.update_one(
         {'_id': ObjectId(room_id), 'room_numbers.number': room_number},
         {'$set': {'room_numbers.$.status': 'booked'}}
     )
 
-    # Log the reservation
-    mongo.db.reservations.insert_one({
+    # Save the reservation
+    reservation = {
         'room_id': ObjectId(room_id),
         'room_number': room_number,
         'user_name': user_name,
-        'status': 'booked'
-    })
+        'email': email,
+        'phone': phone,
+        'checkin_date': checkin_date,
+        'checkout_date': checkout_date,
+        'guests': guests,
+        'bed_type': bed_type,
+        'smoking': smoking,
+        'view_preference': view_preference,
+        'floor_preference': floor_preference,
+        'breakfast': breakfast,
+        'airport_pickup': airport_pickup,
+        'late_checkout': late_checkout,
+        'early_checkin': early_checkin,
+        'extra_bed': extra_bed,
+        'facilities': facilities,
+        'special_requests': special_requests,
+        'status': 'booked',
+        'created_at': datetime.utcnow()
+    }
+
+    mongo.db.reservations.insert_one(reservation)
 
     flash('Room booked successfully!', 'success')
-    return redirect(url_for('show_rooms'))  # Make sure this route exists
-
+    return redirect(url_for('get_hotel_rooms'))
 
 # Admin view to see all reservations
 @app.route('/admin/reservations')
@@ -388,17 +449,23 @@ def add_new_hotel_room():
         price = float(request.form.get('price'))
         image_url = request.form.get('image_url')
         description = request.form.get('description')
-        room_numbers = request.form.getlist('room_numbers[]')  # This will fetch the list of room numbers
+        room_numbers_input = request.form.getlist('room_numbers[]')
+
+        # Convert amenities to a list
+        amenities_list = [amenity.strip() for amenity in amenities.split(',') if amenity.strip()]
+
+        # Create room_numbers as a list of dictionaries
+        room_numbers = [{'number': rn.strip(), 'status': 'available'} for rn in room_numbers_input if rn.strip()]
 
         # Data structure to insert
         hotel_room_data = {
             "room_type": room_type,
             "beds": beds,
-            "amenities": amenities,
+            "amenities": amenities_list,
             "price": price,
             "image_url": image_url,
             "description": description,
-            "room_numbers": room_numbers  # Adding room numbers to the data structure
+            "room_numbers": room_numbers
         }
 
         # Insert into MongoDB
@@ -408,6 +475,7 @@ def add_new_hotel_room():
         return redirect(url_for('add_new_hotel_room'))
 
     return render_template('add_new_hotel_room.html')
+
 
 
 
@@ -581,8 +649,22 @@ def add_room():
 # Route: View + Delete Rooms
 @app.route('/admin/manage-rooms')
 def manage_hotel_rooms():
-    rooms = mongo.db.hotel_rooms.find()
-    return render_template('admin/manage_hotel_rooms.html', rooms=rooms)
+    rooms_cursor = mongo.db.hotel_rooms.find()
+    rooms = []
+    for room in rooms_cursor:
+        room['_id'] = str(room['_id'])
+        rooms.append(room)
+
+    reservations_cursor = mongo.db.bookings.find()
+    reservations = []
+    for res in reservations_cursor:
+        res['_id'] = str(res['_id'])
+        reservations.append(res)
+
+    room_to_edit = None
+    return render_template('admin/manage_hotel_rooms.html', rooms=rooms, reservations=reservations, room_to_edit=room_to_edit)
+
+
 
 @app.route('/admin/delete-room/<room_id>', methods=['POST'])
 def delete_hotel_room(room_id):
