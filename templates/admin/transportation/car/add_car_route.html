@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Add Train Route</title>
+    <title>Add Car Route</title>
     <style>
         body {
             font-family: sans-serif;
@@ -49,7 +49,7 @@
 </head>
 <body>
     <div class="container">
-        <h2>Add Train Route</h2>
+        <h2>Add Car Route</h2>
         <form method="POST">
             <label for="origin">Origin</label>
             <select name="origin" id="origin" required>
@@ -67,11 +67,19 @@
             <label for="date">Date</label>
             <input type="date" name="date" required>
 
-            <label for="fare">Fare (BDT)</label>
-            <input type="number" name="fare" step="0.01" required>
+            <label for="car_type">Car Type</label>
+            <select name="car_type" id="car_type" required>
+                <option value="" disabled selected>Select car type</option>
+                <option value="Small">Small</option>
+                <option value="Large">Large</option>
+                <option value="Extra Large">Extra Large</option>
+            </select>
 
-            <label for="available_tickets">Available Tickets</label>
-            <input type="number" name="available_tickets" required>
+            <label for="fare">Fare (BDT)</label>
+            <input type="number" name="fare" id="fare" step="0.01" readonly>
+
+            <label for="available_cars">Available Cars</label>
+            <input type="number" name="available_cars" required>
 
             <button type="submit">Add Route</button>
         </form>
@@ -81,6 +89,8 @@
         const branches = {{ branches|tojson }};
         const originSelect = document.getElementById("origin");
         const destinationSelect = document.getElementById("destination");
+        const carTypeSelect = document.getElementById("car_type");
+        const fareInput = document.getElementById("fare");
 
         function populateDestinationOptions() {
             const selectedOrigin = originSelect.value;
@@ -95,7 +105,21 @@
             });
         }
 
+        function updateFare() {
+            const carType = carTypeSelect.value;
+            if (carType === "Small") {
+                fareInput.value = 2000;
+            } else if (carType === "Large") {
+                fareInput.value = 3000;
+            } else if (carType === "Extra Large") {
+                fareInput.value = 4000;
+            } else {
+                fareInput.value = "";
+            }
+        }
+
         originSelect.addEventListener("change", populateDestinationOptions);
+        carTypeSelect.addEventListener("change", updateFare);
     </script>
 </body>
 </html>

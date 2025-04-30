@@ -46,32 +46,50 @@
         .btn-primary {
             background-color: #ff7f50;
             color: white;
-            padding: 10px 20px;
+            padding: 8px 15px;
             text-decoration: none;
             border-radius: 5px;
-            text-align: center;
-            display: inline-block;
-            font-size: 16px;
+            font-size: 14px;
             transition: background-color 0.3s ease;
         }
         .btn-primary:hover {
             background-color: #e76f3d;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        .add-route-btn {
+            display: block;
+            width: fit-content;
+            margin: 0 auto;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>View Bus Routes</h2>
-        <table class="table table-bordered">
+        <table>
             <thead>
                 <tr>
                     <th>Origin</th>
                     <th>Destination</th>
                     <th>Date</th>
+                    <th>Time</th>
+                    <th>Seat Class</th>
                     <th>Fare</th>
                     <th>Available Tickets</th>
                     <th>Origin Branch Contact</th>
                     <th>Destination Branch Contact</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -79,16 +97,24 @@
                 <tr>
                     <td>{{ route.origin }}</td>
                     <td>{{ route.destination }}</td>
-                    <td>{{ route.date }}</td>
+                    <td>{{ route.date.strftime('%Y-%m-%d') if route.date else '' }}</td>
+                    <td>{{ route.time }}</td>
+                    <td>{{ route.seat_class }}</td>
                     <td>{{ route.fare }}</td>
                     <td>{{ route.available_tickets }}</td>
                     <td>{{ route.origin_branch_contact }}</td>
                     <td>{{ route.destination_branch_contact }}</td>
+                    <td>
+                        <div class="btn-container">
+                            <a href="{{ url_for('edit_bus_route', route_id=route._id) }}" class="btn btn-primary">Edit</a>
+                            <a href="{{ url_for('delete_bus_route', route_id=route._id) }}" class="btn btn-primary btn-danger" onclick="return confirm('Are you sure you want to delete this route?');">Delete</a>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-        <a href="{{ url_for('add_bus_route') }}" class="btn btn-primary">Add New Bus Route</a>
+        <a href="{{ url_for('add_bus_route') }}" class="btn btn-primary add-route-btn">Add New Bus Route</a>
     </div>
 </body>
 </html>

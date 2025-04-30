@@ -25,7 +25,7 @@
             margin-top: 15px;
             font-weight: bold;
         }
-        select, input[type="number"], input[type="date"] {
+        select, input[type="number"], input[type="date"], input[type="time"] {
             width: 100%;
             padding: 10px;
             margin-top: 5px;
@@ -67,8 +67,19 @@
             <label for="date">Date</label>
             <input type="date" name="date" required>
 
+            <label for="time">Departure Time</label>
+            <input type="time" name="time" required>
+
+            <label for="seat_type">Seat Category</label>
+            <select name="seat_type" id="seat_type" required>
+                <option value="" disabled selected>Select category</option>
+                <option value="Economy">Economy</option>
+                <option value="Business">Business</option>
+                <option value="Regular">Regular</option>
+            </select>
+
             <label for="fare">Fare (BDT)</label>
-            <input type="number" name="fare" step="0.01" required>
+            <input type="number" name="fare" id="fare" step="0.01" readonly>
 
             <label for="available_tickets">Available Tickets</label>
             <input type="number" name="available_tickets" required>
@@ -81,6 +92,8 @@
         const branches = {{ branches|tojson }};
         const originSelect = document.getElementById("origin");
         const destinationSelect = document.getElementById("destination");
+        const seatTypeSelect = document.getElementById("seat_type");
+        const fareInput = document.getElementById("fare");
 
         function populateDestinationOptions() {
             const selectedOrigin = originSelect.value;
@@ -95,7 +108,21 @@
             });
         }
 
+        function updateFare() {
+            const seatType = seatTypeSelect.value;
+            if (seatType === "Economy") {
+                fareInput.value = 400;
+            } else if (seatType === "Business") {
+                fareInput.value = 800;
+            } else if (seatType === "Regular") {
+                fareInput.value = 600;
+            } else {
+                fareInput.value = "";
+            }
+        }
+
         originSelect.addEventListener("change", populateDestinationOptions);
+        seatTypeSelect.addEventListener("change", updateFare);
     </script>
 </body>
 </html>

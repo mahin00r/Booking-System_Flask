@@ -5,10 +5,14 @@ from bson.objectid import ObjectId
 import os
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
+<<<<<<< Updated upstream
 from pymongo import ReturnDocument
 from datetime import datetime
 
 
+=======
+from datetime import datetime
+>>>>>>> Stashed changes
 
 
 app = Flask(__name__)
@@ -17,6 +21,7 @@ app.secret_key = "ticket_booking_secret"
 # MongoDB Configuration
 app.config["MONGO_URI"] = "mongodb+srv://admin:Admin123@all-ticket-booking-syst.2qrnrhs.mongodb.net/ticket_booking?retryWrites=true&w=majority&appName=ALL-Ticket-Booking-System"
 mongo = PyMongo(app)
+bus_routes_collection = mongo.db.bus_routes
 
 # ------------ Public Routes ------------
 
@@ -275,6 +280,7 @@ def make_admin(user_id):
 
     # Redirect to signup with prefilled username
     return redirect(url_for('admin_signup', username=user['username']))
+
 ##################################################################################################
 
 @app.route("/hotel_rooms", methods=["GET"])
@@ -786,12 +792,26 @@ def add_bus_route():
         origin = request.form.get("origin")
         destination = request.form.get("destination")
         date = request.form.get("date")
+        time = request.form.get("time")
+        seat_class = request.form.get("seat_type")  # 🔄 corrected field name
         fare = request.form.get("fare")
         available_tickets = request.form.get("available_tickets")
 
-        if not all([origin, destination, date, fare, available_tickets]):
-            flash("All fields are required.", "danger")
+        if not all([origin, destination, date, time, seat_class, available_tickets]):
+            flash("All fields except fare are required.", "danger")
             return redirect(url_for("add_bus_route"))
+
+        # Auto-fare based on seat class if empty
+        if not fare:
+            if seat_class == "Economy":
+                fare = 400
+            elif seat_class == "Business":
+                fare = 800
+            elif seat_class == "Regular":
+                fare = 600
+            else:
+                flash("Invalid seat class.", "danger")
+                return redirect(url_for("add_bus_route"))
 
         origin_branch = mongo.db.branches.find_one({"name": origin})
         destination_branch = mongo.db.branches.find_one({"name": destination})
@@ -804,6 +824,8 @@ def add_bus_route():
             "origin": origin,
             "destination": destination,
             "date": datetime.strptime(date, "%Y-%m-%d"),
+            "time": time,
+            "seat_class": seat_class,
             "fare": float(fare),
             "available_tickets": int(available_tickets),
             "origin_branch_contact": origin_branch.get("phone"),
@@ -816,7 +838,6 @@ def add_bus_route():
     branches = list(mongo.db.branches.find())
     return render_template("admin/transportation/bus/add_bus_route.html", branches=branches)
 
-
 @app.route("/admin/transportation/bus/view")
 def view_bus_routes():
     if "admin_id" not in session:
@@ -826,11 +847,60 @@ def view_bus_routes():
     bus_routes = list(mongo.db.bus_routes.find())
     return render_template("admin/transportation/bus/view_bus_routes.html", bus_routes=bus_routes)
 
+@app.route("/admin/transportation/bus/edit/<route_id>", methods=["GET", "POST"])
+def edit_bus_route(route_id):
+    if "admin_id" not in session:
+        flash("Login required.", "danger")
+        return redirect(url_for("admin_login"))
 
-# ------------ Transportation System - Train Routes ------------
+    route = mongo.db.bus_routes.find_one({"_id": ObjectId(route_id)})
+    if not route:
+        flash("Bus route not found.", "danger")
+        return redirect(url_for("view_bus_routes"))
 
-@app.route("/admin/transportation/train/add", methods=["GET", "POST"])
-def add_train_route():
+    branches = list(mongo.db.branches.find())
+
+    if request.method == "POST":
+        updated_data = {
+            "origin": request.form.get("origin"),
+            "destination": request.form.get("destination"),
+            "date": datetime.strptime(request.form.get("date"), "%Y-%m-%d"),
+            "time": request.form.get("time"),
+            "seat_class": request.form.get("seat_class"),
+            "fare": float(request.form.get("fare")),
+            "available_tickets": int(request.form.get("available_tickets")),
+        }
+
+        origin_branch = mongo.db.branches.find_one({"name": updated_data["origin"]})
+        destination_branch = mongo.db.branches.find_one({"name": updated_data["destination"]})
+
+        updated_data["origin_branch_contact"] = origin_branch.get("phone") if origin_branch else ""
+        updated_data["destination_branch_contact"] = destination_branch.get("phone") if destination_branch else ""
+
+        mongo.db.bus_routes.update_one({"_id": ObjectId(route_id)}, {"$set": updated_data})
+        flash("Bus route updated successfully.", "success")
+        return redirect(url_for("view_bus_routes"))
+
+    return render_template("admin/transportation/bus/edit_bus_route.html", route=route, branches=branches)
+
+@app.route("/admin/transportation/bus/delete/<route_id>")
+def delete_bus_route(route_id):
+    if "admin_id" not in session:
+        flash("Login required.", "danger")
+        return redirect(url_for("admin_login"))
+
+    result = mongo.db.bus_routes.delete_one({"_id": ObjectId(route_id)})
+    if result.deleted_count:
+        flash("Bus route deleted successfully.", "success")
+    else:
+        flash("Bus route not found.", "danger")
+    return redirect(url_for("view_bus_routes"))
+
+# ------------ Transportation System - Car Routes ------------
+
+# Add Car Route
+@app.route("/admin/transportation/car/add", methods=["GET", "POST"])
+def add_car_route():
     if "admin_id" not in session:
         flash("Login required.", "danger")
         return redirect(url_for("admin_login"))
@@ -839,47 +909,190 @@ def add_train_route():
         origin = request.form.get("origin")
         destination = request.form.get("destination")
         date = request.form.get("date")
+        car_type = request.form.get("car_type")
         fare = request.form.get("fare")
-        available_tickets = request.form.get("available_tickets")
+        available_cars = request.form.get("available_cars")
 
-        if not all([origin, destination, date, fare, available_tickets]):
-            flash("All fields are required.", "danger")
-            return redirect(url_for("add_train_route"))
+        # Check if required fields are filled
+        if not all([origin, destination, date, car_type, available_cars]):
+            flash("All fields except fare are required.", "danger")
+            return redirect(url_for("add_car_route"))
 
+        # Auto-fare based on car type if fare is empty
+        if not fare:
+            if car_type == "Small":
+                fare = 2000
+            elif car_type == "Large":
+                fare = 3000
+            elif car_type == "Extra Large":
+                fare = 4000
+            else:
+                flash("Invalid car type.", "danger")
+                return redirect(url_for("add_car_route"))
+
+        # Check if origin and destination branches exist
         origin_branch = mongo.db.branches.find_one({"name": origin})
         destination_branch = mongo.db.branches.find_one({"name": destination})
 
         if not origin_branch or not destination_branch:
             flash("Origin or destination branch does not exist.", "danger")
-            return redirect(url_for("add_train_route"))
+            return redirect(url_for("add_car_route"))
 
-        mongo.db.train_routes.insert_one({
+        # Insert new car route into MongoDB
+        mongo.db.car_routes.insert_one({
             "origin": origin,
             "destination": destination,
             "date": datetime.strptime(date, "%Y-%m-%d"),
+            "car_type": car_type,
             "fare": float(fare),
-            "available_tickets": int(available_tickets),
+            "available_cars": int(available_cars),
             "origin_branch_contact": origin_branch.get("phone"),
             "destination_branch_contact": destination_branch.get("phone")
         })
 
-        flash("Train route added successfully.", "success")
-        return redirect(url_for("view_train_routes"))
+        flash("Car route added successfully.", "success")
+        return redirect(url_for("view_car_routes"))
 
     branches = list(mongo.db.branches.find())
-    return render_template("admin/transportation/train/add_train_route.html", branches=branches)
+    return render_template("admin/transportation/car/add_car_route.html", branches=branches)
 
-
-@app.route("/admin/transportation/train/view")
-def view_train_routes():
+# View Car Routes
+@app.route("/admin/transportation/car/view", methods=["GET"])
+def view_car_routes():
     if "admin_id" not in session:
         flash("Login required.", "danger")
         return redirect(url_for("admin_login"))
 
-    train_routes = list(mongo.db.train_routes.find())
-    return render_template("admin/transportation/train/view_train_routes.html", train_routes=train_routes)
+    car_routes = mongo.db.car_routes.find()
+    return render_template("admin/transportation/car/view_car_routes.html", car_routes=car_routes)
+
+# Edit Car Route
+@app.route('/edit_car_route/<route_id>', methods=['GET', 'POST'])
+def edit_car_route(route_id):
+    # Find the car route to edit
+    route = mongo.db.car_routes.find_one({'_id': ObjectId(route_id)})
+
+    if request.method == 'POST':
+        origin = request.form['origin']
+        destination = request.form['destination']
+        date = request.form['date']
+        car_type = request.form['car_type']
+        fare = request.form['fare']
+        available_cars = request.form['available_cars']
+
+        # Update the route data in MongoDB
+        mongo.db.car_routes.update_one(
+            {'_id': ObjectId(route_id)},
+            {'$set': {
+                'origin': origin,
+                'destination': destination,
+                'date': datetime.strptime(date, '%Y-%m-%d'),
+                'car_type': car_type,
+                'fare': float(fare),
+                'available_cars': int(available_cars)
+            }}
+        )
+        flash("Car route updated successfully.", "success")
+        return redirect(url_for('view_car_routes'))
+
+    # Fetch branches for dropdown in the form
+    branches = mongo.db.branches.find()
+    return render_template('admin/transportation/car/edit_car_route.html', route=route, branches=branches)
+
+# Delete Car Route
+@app.route('/delete_car_route/<route_id>', methods=['GET'])
+def delete_car_route(route_id):
+    mongo.db.car_routes.delete_one({'_id': ObjectId(route_id)})
+    flash("Car route deleted successfully.", "success")
+    return redirect(url_for('view_car_routes'))
 
 
+@app.route('/show-bus-tickets')
+def show_bus_tickets():
+    routes_cursor = bus_routes_collection.find()
+    
+    routes = []
+    for route in routes_cursor:
+        route['_id'] = str(route['_id'])  # Convert ObjectId for URL
+
+        # Format date and time safely
+        if isinstance(route.get('date'), datetime):
+            route['formatted_date'] = route['date'].strftime('%B %d, %Y')
+        else:
+            route['formatted_date'] = route.get('date', 'N/A')
+
+        if isinstance(route.get('time'), str):
+            try:
+                parsed_time = datetime.strptime(route['time'], '%H:%M')
+                route['formatted_time'] = parsed_time.strftime('%I:%M %p')
+            except:
+                route['formatted_time'] = route['time']
+        else:
+            route['formatted_time'] = 'N/A'
+
+        route['available_tickets'] = int(route.get('available_tickets', 0))
+        routes.append(route)
+
+    return render_template('user/show_bus_tickets.html', routes=routes)
+
+@app.route("/book-ticket/<route_id>", methods=["GET", "POST"])
+def book_bus_ticket(route_id):
+    route = mongo.db.bus_routes.find_one({"_id": ObjectId(route_id)})
+
+    if not route:
+        flash("Route not found.", "danger")
+        return redirect(url_for("show_bus_tickets"))
+
+    if request.method == "POST":
+        seats = int(request.form.get("seats"))
+        name = request.form.get("name")
+        phone = request.form.get("phone")
+        email = request.form.get("email")
+        address = request.form.get("address")
+
+        if seats <= 0 or seats > route.get("available_tickets", 0):
+            flash("Invalid number of seats selected.", "danger")
+            return redirect(request.url)
+
+        # Insert booking into `bus_bookings` collection
+        booking = {
+            "route_id": str(route["_id"]),
+            "name": name,
+            "phone": phone,
+            "email": email,
+            "address": address,
+            "seats_booked": seats,
+            "fare_per_seat": route["fare"],
+            "total_fare": float(route["fare"]) * seats,
+            "booking_time": datetime.now()
+        }
+
+        mongo.db.bus_bookings.insert_one(booking)
+
+        # Update available tickets
+        mongo.db.bus_routes.update_one(
+            {"_id": ObjectId(route_id)},
+            {"$inc": {"available_tickets": -seats}}
+        )
+
+        flash("Ticket booked successfully!", "success")
+        return redirect(url_for("show_bus_tickets"))
+
+    # Format route fields for display
+    route['_id'] = str(route['_id'])
+    route['available_tickets'] = int(route.get('available_tickets', 0))
+
+    if isinstance(route.get("date"), datetime):
+        route["formatted_date"] = route["date"].strftime("%B %d, %Y")
+    else:
+        route["formatted_date"] = route.get("date", "N/A")
+
+    try:
+        route["formatted_time"] = datetime.strptime(route.get("time", "00:00"), "%H:%M").strftime("%I:%M %p")
+    except:
+        route["formatted_time"] = route.get("time", "N/A")
+
+    return render_template("user/book_bus_ticket.html", route=route)
 
 # Run the App
 if __name__ == "__main__":

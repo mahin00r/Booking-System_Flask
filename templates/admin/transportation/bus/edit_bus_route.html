@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Bus Route</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 50%;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #ff6600;
+            margin-bottom: 30px;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        select, input[type="text"], input[type="date"], input[type="time"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #ff6600;
+            color: white;
+            padding: 12px;
+            width: 100%;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #e55d00;
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            margin-top: 10px;
+            text-align: center;
+            padding: 12px;
+            background-color: #aaa;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        .btn-secondary:hover {
+            background-color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Edit Bus Route</h2>
+        <form method="POST">
+            <label>Origin:</label>
+            <select name="origin" required>
+                {% for branch in branches %}
+                    <option value="{{ branch.name }}" {% if branch.name == route.origin %}selected{% endif %}>{{ branch.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Destination:</label>
+            <select name="destination" required>
+                {% for branch in branches %}
+                    <option value="{{ branch.name }}" {% if branch.name == route.destination %}selected{% endif %}>{{ branch.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Date:</label>
+            <input type="date" name="date" value="{{ route.date.strftime('%Y-%m-%d') }}" required>
+
+            <label>Time:</label>
+            <input type="time" name="time" value="{{ route.time }}" required>
+
+            <label>Seat Class:</label>
+            <select name="seat_class" required>
+                <option value="Economy" {% if route.seat_class == 'Economy' %}selected{% endif %}>Economy</option>
+                <option value="Regular" {% if route.seat_class == 'Regular' %}selected{% endif %}>Regular</option>
+                <option value="Business" {% if route.seat_class == 'Business' %}selected{% endif %}>Business</option>
+            </select>
+
+            <label>Fare:</label>
+            <input type="number" step="0.01" name="fare" value="{{ route.fare }}" required>
+
+            <label>Available Tickets:</label>
+            <input type="number" name="available_tickets" value="{{ route.available_tickets }}" required>
+
+            <button type="submit" class="btn btn-primary">Update</button>
+            <a href="{{ url_for('view_bus_routes') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</body>
+</html>
