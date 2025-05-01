@@ -36,12 +36,12 @@
   <div class="container mt-5">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="alert alert-dismissible fade show mt-3" role="alert">
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
-          {% endfor %}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
       {% endif %}
     {% endwith %}
 
@@ -49,13 +49,53 @@
 
     <div class="row mt-4">
       {% for room in rooms %}
-        <div class="col-md-4">
+        <div class="col-md-6">
           <div class="card text-center p-3">
             <img src="{{ room['image_url'] }}" alt="{{ room['room_type'] }} image">
             <h4>{{ room['room_type'] }}</h4>
             <p>{{ room['description'] }}</p>
             <p>Price: ${{ room['price'] }}</p>
-            <button class="btn btn-primary" onclick="bookRoom('{{ room['_id'] }}')">Book Now</button>
+
+            <!-- {% if room['ratings'] %}
+              <p>Average Rating: {{ (room['ratings'] | sum) / (room['ratings'] | length) | round(1) }} ⭐</p>
+            {% endif %}
+
+            {% if room['feedbacks'] %}
+              <div>
+                <strong>Guest Feedback:</strong>
+                <ul class="text-start ps-3">
+                  {% for feedback in room['feedbacks'] %}
+                    <li>{{ feedback }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
+            {% if room['complaints'] %} -->
+              <!-- <div>
+                <strong>Complaints:</strong>
+                <ul class="text-start ps-3">
+                  {% for complaint in room['complaints'] %}
+                    <li>{{ complaint }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %} -->
+
+            <h6 class="mt-3">Available Rooms:</h6>
+            <ul class="list-unstyled">
+              {% set available_rooms = room.room_numbers | selectattr('status', 'equalto', 'available') | list %}
+              {% for rn in available_rooms %}
+                <li>Room {{ rn.number }}</li>
+              {% endfor %}
+            </ul>
+            {% if available_rooms|length == 0 %}
+              <p class="text-muted">No rooms available.</p>
+            {% endif %}
+
+            <button class="btn btn-primary mt-2" onclick="bookRoom('{{ room['_id'] }}')">Book Now</button>
+            
+
           </div>
         </div>
       {% endfor %}
@@ -179,14 +219,13 @@
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- JS for modal & fetch -->
+  <!-- JavaScript to handle booking -->
   <script>
     function bookRoom(roomId) {
       fetch(`/get-room-details/${roomId}`)
         .then(response => response.json())
         .then(data => {
           document.getElementById('room_id_input').value = roomId;
-
           const select = document.getElementById('room_number');
           select.innerHTML = '';
 
@@ -199,7 +238,8 @@
             }
           });
 
-          new bootstrap.Modal(document.getElementById('bookingModal')).show();
+          const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+          modal.show();
         })
         .catch(error => {
           alert("Error fetching room data. Please try again.");
@@ -210,6 +250,7 @@
 
 </body>
 </html>
+
 
 
 
