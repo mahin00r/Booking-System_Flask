@@ -588,23 +588,57 @@ def add_new_penthouse():
 
     return render_template('admin/new_penthouse.html')
 
-@app.route('/book_penthouse/<penthouse_id>', methods=['POST'])
+
+@app.route("/book_penthouse/<penthouse_id>", methods=["GET", "POST"])
 def book_penthouse(penthouse_id):
-    penthouse = mongo.db.penthouses.find_one({'_id': ObjectId(penthouse_id)})
-    if penthouse:
-        mongo.db.bookings.insert_one({
-            'penthouse_id': penthouse['_id'],
-            'title': penthouse['title'],
-            'price': penthouse['price'],
-            'location': penthouse['location'],
-            'features': penthouse['features'],
-            'image_url': penthouse.get('image_url', ''),
-            'status': 'booked'
-        })
+    penthouse = mongo.db.penthouses.find_one({"_id": ObjectId(penthouse_id)})
+    
+    if not penthouse:
+        return "Penthouse not found", 404
+    
+    if request.method == "POST":
+        # Get form data, with a default value of 0 if empty
+        adults = request.form.get("adults")
+        children = request.form.get("children")
+        
+        # Convert to int, defaulting to 0 if the value is empty
+        try:
+            adults = int(adults) if adults else 0
+            children = int(children) if children else 0
+        except ValueError:
+            # Handle case where the value can't be converted
+            flash("Please enter valid numbers for adults and children.", "danger")
+            return redirect(request.url)
+        
+        booking = {
+            "penthouse_id": penthouse_id,
+            "penthouse_name": penthouse.get("title"),
+            "location": penthouse.get("location"),
+            "check_in": request.form.get("check_in"),
+            "check_out": request.form.get("check_out"),
+            "adults": adults,
+            "children": children,
+            "room_type": request.form.get("room_type"),
+            "services": request.form.getlist("services"),
+            "user_name": request.form.get("name"),
+            "email": request.form.get("email"),
+            "phone": request.form.get("phone"),
+            "payment_method": request.form.get("payment_method"),
+            "promo_code": request.form.get("promo_code"),
+            "status": "Pending Confirmation",
+            "timestamp": datetime.now()
+        }
+        
+        # Insert booking data into the database
+        mongo.db.bookings.insert_one(booking)
+
+        # Flash success message and redirect to the booking confirmation page
         flash("Penthouse booked successfully!", "success")
-    else:
-        flash("Penthouse not found!", "danger")
-    return redirect(url_for('view_penthouses'))
+        return redirect(url_for("booking_success"))  # Redirect to the success page
+    
+    return render_template("book_penthouse.html", penthouse=penthouse)
+
+
 
 @app.route('/book-room/<room_id>')
 def view_room_booking(room_id):
@@ -775,6 +809,69 @@ def view_branches():
     branches = list(mongo.db.branches.find())
     return render_template("admin/branch/view_branches.html", branches=branches)  # Path updated
 
+##pent
+
+@app.route("/book_penthouse/<penthouse_id>", methods=["GET", "POST"])
+def book_penthouse_view(penthouse_id):
+    penthouse = mongo.db.penthouses.find_one({"_id": ObjectId(penthouse_id)})
+    if not penthouse:
+        return "Penthouse not found", 404
+
+    if request.method == "POST":
+        booking = {
+            "penthouse_id": penthouse_id,
+            "penthouse_name": penthouse.get("title"),
+            "location": penthouse.get("location"),
+            "check_in": request.form.get("check_in"),
+            "check_out": request.form.get("check_out"),
+            "adults": int(request.form.get("adults")),
+            "children": int(request.form.get("children")),
+            "room_type": request.form.get("room_type"),
+            "services": request.form.getlist("services"),
+            "user_name": request.form.get("name"),
+            "email": request.form.get("email"),
+            "phone": request.form.get("phone"),
+            "payment_method": request.form.get("payment_method"),
+            "promo_code": request.form.get("promo_code"),
+            "status": "Pending Confirmation",
+            "timestamp": datetime.now()
+        }
+        mongo.db.bookings.insert_one(booking)
+        return redirect(url_for("booking_success")) 
+    return render_template("book_penthouse.html", penthouse=penthouse)
+
+@app.route("/booking-success")
+def booking_success():
+    return "<h2>✅ Your booking has been submitted!</h2><a href='/'>Return to Home</a>"
+@app.route("/manage_reservations", methods=["GET"])
+def manage_reservations():
+    # Fetch all bookings related to penthouses
+    reservations = list(mongo.db.bookings.find({"penthouse_id": {"$exists": True}}))  # Ensure the reservation is for a penthouse
+    
+    # Pass the reservations to the template
+    return render_template("manage_reservations.html", reservations=reservations)
+
+@app.route("/cancel_reservations/<reservation_id>/<penthouse_id>", methods=["GET"])
+def cancel_reservations(reservation_id, penthouse_id):
+    try:
+        # Update reservation status to 'Cancelled'
+        result = mongo.db.bookings.update_one(
+            {"_id": ObjectId(reservation_id)},
+            {"$set": {"status": "Cancelled"}}
+        )
+
+        if result.matched_count > 0:
+            flash("Reservation has been cancelled.", "success")
+        else:
+            flash("Reservation not found or already cancelled.", "warning")
+
+    except Exception as e:
+        flash(f"An error occurred: {str(e)}", "danger")
+
+    # After cancellation, redirect to the manage reservations page
+    return redirect(url_for("manage_reservations"))
+
+##pent
 
 # ------------ Transportation System - Bus Routes ------------
 
