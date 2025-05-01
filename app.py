@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, flash, session, url
 from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
-import os
+import os,sys
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
 from pymongo import ReturnDocument
@@ -1137,41 +1137,64 @@ def book_bus_ticket(route_id):
         return redirect(url_for("show_bus_tickets"))
 
     if request.method == "POST":
-        seats = int(request.form.get("seats"))
-        name = request.form.get("name")
-        phone = request.form.get("phone")
-        email = request.form.get("email")
-        address = request.form.get("address")
+        try:
+            seats = int(request.form.get("seats"))
+            name = request.form.get("name")
+            phone = request.form.get("phone")
+            email = request.form.get("email")
+            address = request.form.get("address")
 
-        if seats <= 0 or seats > route.get("available_tickets", 0):
-            flash("Invalid number of seats selected.", "danger")
+            if seats <= 0 or seats > route.get("available_tickets", 0):
+                flash("Invalid number of seats selected.", "danger")
+                return redirect(request.url)
+
+            # Format date and time
+            booking_date = route.get("date")
+            booking_time = route.get("time", "00:00")
+            if isinstance(booking_date, datetime):
+                formatted_date = booking_date.strftime("%B %d, %Y")
+            else:
+                formatted_date = booking_date or "N/A"
+
+            try:
+                formatted_time = datetime.strptime(booking_time, "%H:%M").strftime("%I:%M %p")
+            except:
+                formatted_time = booking_time or "N/A"
+
+            # Insert booking into `bus_bookings` collection
+            booking = {
+                "route_id": str(route["_id"]),
+                "origin": route.get("origin", "Unknown"),
+                "destination": route.get("destination", "Unknown"),
+                "date": formatted_date,
+                "time": formatted_time,
+                "name": name,
+                "phone": phone,
+                "email": email,
+                "address": address,
+                "seats": seats,
+                "fare_per_seat": route["fare"],
+                "total_fare": float(route["fare"]) * seats,
+                "booking_time": datetime.now(),
+                "status": "Booked"  # ✅ Set status to avoid 'status' error
+            }
+
+            mongo.db.bus_bookings.insert_one(booking)
+
+            # Update available tickets
+            mongo.db.bus_routes.update_one(
+                {"_id": ObjectId(route_id)},
+                {"$inc": {"available_tickets": -seats}}
+            )
+
+            flash("Ticket booked successfully!", "success")
+            return redirect(url_for("show_bus_tickets"))
+
+        except Exception as e:
+            flash(f"An error occurred while booking: {str(e)}", "danger")
             return redirect(request.url)
 
-        # Insert booking into `bus_bookings` collection
-        booking = {
-            "route_id": str(route["_id"]),
-            "name": name,
-            "phone": phone,
-            "email": email,
-            "address": address,
-            "seats_booked": seats,
-            "fare_per_seat": route["fare"],
-            "total_fare": float(route["fare"]) * seats,
-            "booking_time": datetime.now()
-        }
-
-        mongo.db.bus_bookings.insert_one(booking)
-
-        # Update available tickets
-        mongo.db.bus_routes.update_one(
-            {"_id": ObjectId(route_id)},
-            {"$inc": {"available_tickets": -seats}}
-        )
-
-        flash("Ticket booked successfully!", "success")
-        return redirect(url_for("show_bus_tickets"))
-
-    # Format route fields for display
+    # Prepare data for GET request rendering
     route['_id'] = str(route['_id'])
     route['available_tickets'] = int(route.get('available_tickets', 0))
 
@@ -1186,6 +1209,78 @@ def book_bus_ticket(route_id):
         route["formatted_time"] = route.get("time", "N/A")
 
     return render_template("user/book_bus_ticket.html", route=route)
+##bus 
+# @app.route("/admin/manage_bus_reservations")
+# def manage_bus_reservations():
+#     reservations = list(mongo.db.bus_bookings.find())
+#     return render_template("admin/manage_bus_reservations.html", reservations=reservations)
+@app.route("/admin/manage_bus_reservations")
+def manage_bus_reservations():
+    # Fetch only active (not cancelled) reservations
+    reservations = mongo.db.bus_bookings.find({"status": {"$ne": "Cancelled"}})
+    return render_template("admin/manage_bus_reservations.html", reservations=reservations)
+
+@app.route("/admin/cancel_bus_reservation/<reservation_id>", methods=["GET"])
+def cancel_bus_reservation(reservation_id):
+    try:
+        # Ensure reservation_id is an ObjectId
+        reservation_id = ObjectId(reservation_id)
+        print(f"Attempting to cancel reservation with ID: {reservation_id}", file=sys.stderr)
+
+        # Fetch the reservation document from MongoDB
+        reservation = mongo.db.bus_bookings.find_one({"_id": reservation_id})
+        print("Fetched reservation:", reservation, file=sys.stderr)
+
+        if reservation:
+            # Ensure status is not already "Cancelled"
+            if reservation.get("status") != "Cancelled":
+                # Attempt to update the reservation's status to "Cancelled"
+                result = mongo.db.bus_bookings.update_one(
+                    {"_id": reservation_id},
+                    {"$set": {"status": "Cancelled"}}
+                )
+                print(f"Update result - Modified count: {result.modified_count}", file=sys.stderr)
+
+                # If no modification happened, the reservation wasn't updated
+                if result.modified_count == 0:
+                    flash("Failed to cancel the reservation (no update applied).", "danger")
+                    return redirect(url_for("manage_bus_reservations"))
+
+                # Attempt to update the seats availability on the bus route
+                route_id = reservation.get("route_id")
+                seats = reservation.get("seats")
+
+                if route_id and seats:
+                    print(f"Attempting to update available tickets for route: {route_id} by {seats} seats", file=sys.stderr)
+                    
+                    # Ensure available_tickets field exists and is updated correctly
+                    seat_update = mongo.db.bus_routes.update_one(
+                        {"_id": ObjectId(route_id)},
+                        {"$inc": {"available_tickets": int(seats)}}
+                    )
+                    print(f"Seats update result - Modified count: {seat_update.modified_count}", file=sys.stderr)
+                    
+                    # Check if the seat update succeeded
+                    if seat_update.modified_count == 0:
+                        flash("Failed to update available seats on the bus route.", "danger")
+                        return redirect(url_for("manage_bus_reservations"))
+                else:
+                    print("Missing route_id or seats, skipping seat return.", file=sys.stderr)
+
+                flash("Reservation cancelled and seats returned to availability.", "success")
+            else:
+                flash("This reservation is already cancelled.", "warning")
+        else:
+            flash("Reservation not found.", "warning")
+            
+    except Exception as e:
+        print(f"Exception occurred: {e}", file=sys.stderr)
+        flash(f"Error: {str(e)}", "danger")
+
+    return redirect(url_for("manage_bus_reservations"))
+
+
+##bus
 
 # Run the App
 if __name__ == "__main__":
