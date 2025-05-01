@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from pymongo import MongoClient
 from pymongo import ReturnDocument
 from datetime import datetime
+from bson.errors import InvalidId
 
 
 
@@ -410,6 +411,7 @@ def book_room():
 
     flash('Room booked successfully!', 'success')
     return redirect(url_for('get_hotel_rooms'))
+    # return redirect(url_for('rate_room', room_id=room_id))
 
 # Admin view to see all reservations
 @app.route('/admin/reservations')
@@ -516,35 +518,79 @@ def travel_buddies():
 
 @app.route('/create_single_buddy', methods=['POST'])
 def create_single_buddy():
-    name = request.form['name']
+    trip_title = request.form['trip_title']
     destination = request.form['destination']
-    details = request.form['details']
-    
+    start_date = request.form['start_date']
+    end_date = request.form['end_date']
+    trip_type = request.form['trip_type']
+    gender_preference = request.form['gender_preference']
+    age_preference = request.form.get('age_preference')
+    budget = request.form.get('budget')
+    mode_of_travel = request.form['mode_of_travel']
+    accommodation_preference = request.form['accommodation_preference']
+    short_bio = request.form['short_bio']
+    contact_option = request.form['contact_option']
+
     buddy = {
         'type': 'single',
-        'name': name,
+        'trip_title': trip_title,
         'destination': destination,
-        'details': details,
+        'start_date': start_date,
+        'end_date': end_date,
+        'trip_type': trip_type,
+        'gender_preference': gender_preference,
+        'age_preference': age_preference if age_preference else None,
+        'budget': budget if budget else None,
+        'mode_of_travel': mode_of_travel,
+        'accommodation_preference': accommodation_preference,
+        'short_bio': short_bio,
+        'contact_option': contact_option,
         'status': 'pending'
     }
+
     mongo.db.buddies.insert_one(buddy)
     return redirect(url_for('travel_buddies'))
 
+
 @app.route('/create_group_buddy', methods=['POST'])
 def create_group_buddy():
-    group_name = request.form['group_name']
+    trip_title = request.form['trip_title']
     destination = request.form['destination']
-    group_details = request.form['group_details']
-    
+    start_date = request.form['start_date']
+    end_date = request.form['end_date']
+    group_size = request.form['group_size']
+    looking_for_more = request.form['looking_for_more']
+    group_type = request.form['group_type']
+    age_range = request.form['age_range']
+    gender_composition = request.form['gender_composition']
+    trip_type = request.form['trip_type']
+    budget_range = request.form['budget_range']
+    accommodation_plan = request.form['accommodation_plan']
+    group_bio = request.form['group_bio']
+    contact_option = request.form['contact_option']
+
     buddy = {
         'type': 'group',
-        'group_name': group_name,
+        'trip_title': trip_title,
         'destination': destination,
-        'group_details': group_details,
+        'start_date': start_date,
+        'end_date': end_date,
+        'group_size': group_size,
+        'looking_for_more': looking_for_more,
+        'group_type': group_type,
+        'age_range': age_range,
+        'gender_composition': gender_composition,
+        'trip_type': trip_type,
+        'budget_range': budget_range,
+        'accommodation_plan': accommodation_plan,
+        'group_bio': group_bio,
+        'contact_option': contact_option,
         'status': 'pending'
     }
+
     mongo.db.buddies.insert_one(buddy)
     return redirect(url_for('travel_buddies'))
+
 
 # ------------------ Admin Dashboard ------------------
 
@@ -736,11 +782,18 @@ def manage_penthouses():
     penthouses = list(mongo.db.penthouses.find())
     return render_template('manage_penthouses.html', penthouses=penthouses)
 #rr
+
 @app.route('/edit_hotel_room/<room_id>')
 def edit_hotel_room(room_id):
-    room = mongo.db.rooms.find_one({'_id': ObjectId(room_id)})
-    rooms = list(mongo.db.rooms.find())
-    return render_template('admin/manage_hotel_rooms.html', rooms=rooms, room_to_edit=room)
+    room_to_edit = mongo.db.rooms.find_one({"_id": ObjectId(room_id)})
+    rooms = list(mongo.db.rooms.find())  # Fetch all rooms again
+
+    return render_template(
+        '/admin/manage_hotel_rooms.html',
+        room_to_edit=room_to_edit,
+        rooms=rooms
+    )
+
 
 @app.route('/update_hotel_room/<room_id>', methods=['POST'])
 def update_hotel_room(room_id):
@@ -753,7 +806,7 @@ def update_hotel_room(room_id):
         "image_url": request.form["image_url"]
     }
     mongo.db.rooms.update_one({"_id": ObjectId(room_id)}, {"$set": updated_data})
-    return redirect(url_for('admin/manage_hotel_rooms'))
+    return redirect(url_for('/admin/manage_hotel_rooms'))
 #rr
 
 # Delete a specific penthouse
@@ -1234,12 +1287,7 @@ def book_bus_ticket(route_id):
 
     return render_template("user/book_bus_ticket.html", route=route)
 
-#### ADMIN PART ####
- 
-# @app.route("/admin/manage_bus_reservations")
-# def manage_bus_reservations():
-#     reservations = list(mongo.db.bus_bookings.find())
-#     return render_template("admin/manage_bus_reservations.html", reservations=reservations)
+
 @app.route("/admin/manage_bus_reservations")
 def manage_bus_reservations():
     # Fetch only active (not cancelled) reservations
