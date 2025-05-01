@@ -26,6 +26,10 @@
                 <textarea name="description" class="form-control">{{ admin.description }}</textarea>
             </div>
             <div class="mb-3">
+                <label>Profile Picture (URL)</label>
+                <input type="text" name="profile_pic" value="{{ admin.profile_pic if admin.profile_pic else '' }}" class="form-control" placeholder="Enter image URL">
+            </div>
+            <div class="mb-3">
                 <label>New Password (leave blank if unchanged)</label>
                 <input type="password" name="password" class="form-control">
             </div>

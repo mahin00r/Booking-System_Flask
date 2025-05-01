@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Messages</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+        .user-entry { border-bottom: 1px solid #ccc; padding: 10px 0; }
+        .user-entry:last-child { border: none; }
+        .user-entry a { text-decoration: none; color: #007bff; font-weight: bold; }
+        .timestamp { color: gray; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Users Who Messaged</h2>
+        {% for user in users %}
+            <div class="user-entry">
+                <a href="{{ url_for('admin_chat', user_id=user.user_id) }}">{{ user.username }}</a><br>
+                <span class="timestamp">{{ user.timestamp.strftime('%Y-%m-%d %H:%M') }} - "{{ user.last_message }}"</span>
+            </div>
+        {% else %}
+            <p>No users have messaged yet.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+        .chat-box { background: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto; box-shadow: 0 0 10px #ccc; }
+        .message { padding: 10px; margin: 5px 0; border-radius: 5px; max-width: 80%; }
+        .user { background: #d1e7dd; text-align: left; }
+        .admin { background: #ffeeba; text-align: right; margin-left: auto; }
+        form { display: flex; margin-top: 20px; }
+        input[type="text"] { flex: 1; padding: 10px; border-radius: 5px 0 0 5px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; border: none; background: #007bff; color: white; border-radius: 0 5px 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="chat-box">
+        <h2>Chat with Admin</h2>
+        <div>
+            {% for msg in messages %}
+                <div class="message {{ 'user' if msg.sender == 'user' else 'admin' }}">
+                    <small><strong>{{ msg.sender.capitalize() }}</strong> @ {{ msg.timestamp.strftime('%Y-%m-%d %H:%M') }}</small><br>
+                    {{ msg.message }}
+                </div>
+            {% endfor %}
+        </div>
+        <form method="POST">
+            <input type="text" name="message" placeholder="Type your message..." required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</body>
+</html>

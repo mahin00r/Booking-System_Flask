@@ -23,9 +23,26 @@ bus_routes_collection = mongo.db.bus_routes
 
 # ------------ User Auth Routes ------------
 
+# ------------ Prevent Back Navigation to Login/Register After Login ------------
+
+@app.after_request
+def add_header(response):
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+# ------------ Routes ------------
+
 @app.route("/")
+def index():
+    if "user_id" in session:
+        return redirect(url_for("home"))
+    return redirect(url_for("register"))
+
+@app.route("/home")
 def home():
-    return redirect(url_for("register"))  # 🔁 Redirect to register page if not logged in
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return render_template("home.html")
 
 # ------------ User Auth Routes ------------
 
@@ -70,20 +87,21 @@ def login():
         if user and check_password_hash(user["password_hash"], password):
             session["user_id"] = str(user["_id"])
             flash("Login successful!", "success")
-            return render_template("home.html") 
+            return redirect(url_for("home"))  # ✅ Use redirect instead of render
         else:
             flash("Invalid credentials.", "danger")
 
     return render_template("user/login.html")
 
+
 @app.route("/logout")
 def logout():
     session.pop("user_id", None)
     flash("Logged out successfully.", "success")
-    return render_template("user/register.html")
+    return redirect(url_for("register"))
 
+# ------------ User Settings and Profile ------------
 
-# Settings Page
 @app.route("/user/settings", methods=["GET", "POST"])
 def user_settings():
     if "user_id" not in session:
@@ -118,6 +136,7 @@ def user_settings():
         return redirect(url_for("user_profile"))
 
     return render_template("user/settings.html", user=user)
+
 
 @app.route("/user/profile")
 def user_profile():
@@ -196,6 +215,7 @@ def admin_settings():
         email = request.form.get("email")
         address = request.form.get("address")
         description = request.form.get("description")
+        profile_pic = request.form.get("profile_pic")  # ✅ NEW FIELD
         new_password = request.form.get("password")
 
         if not username or not email:
@@ -216,7 +236,8 @@ def admin_settings():
             "username": username,
             "email": email,
             "address": address,
-            "description": description
+            "description": description,
+            "profile_pic": profile_pic if profile_pic else admin.get("profile_pic")  # ✅ Conditional Update
         }
 
         if new_password:
@@ -228,6 +249,7 @@ def admin_settings():
 
     return render_template("admin/settings.html", admin=admin)
 
+
 @app.route("/admin/profile")
 def admin_profile():
     if "admin_id" not in session:
@@ -236,6 +258,7 @@ def admin_profile():
 
     admin = mongo.db.admins.find_one({"_id": ObjectId(session["admin_id"])})
     return render_template("admin/profile.html", admin=admin)
+
 
 @app.route("/admin_logout")
 def admin_logout():
@@ -1099,6 +1122,7 @@ def delete_car_route(route_id):
     flash("Car route deleted successfully.", "success")
     return redirect(url_for('view_car_routes'))
 
+############### USER PART BOOKING (BUS) ###############################
 
 @app.route('/show-bus-tickets')
 def show_bus_tickets():
@@ -1209,7 +1233,9 @@ def book_bus_ticket(route_id):
         route["formatted_time"] = route.get("time", "N/A")
 
     return render_template("user/book_bus_ticket.html", route=route)
-##bus 
+
+#### ADMIN PART ####
+ 
 # @app.route("/admin/manage_bus_reservations")
 # def manage_bus_reservations():
 #     reservations = list(mongo.db.bus_bookings.find())
@@ -1280,8 +1306,239 @@ def cancel_bus_reservation(reservation_id):
     return redirect(url_for("manage_bus_reservations"))
 
 
-##bus
 
+
+#### CAR USER #######
+# Route to choose transportation
+@app.route("/choose-transportation")
+def choose_transportation():
+    return render_template("choose_transportation.html")
+
+# Route to view available car routes
+@app.route("/available-cars")
+def show_available_cars():
+    today = datetime.today()
+    
+    # Fetching car routes where the date is greater than or equal to today
+    car_routes = list(mongo.db.car_routes.find({"date": {"$gte": today}}))
+
+    # Formatting date and converting ObjectId to string for display
+    for route in car_routes:
+        route["_id"] = str(route["_id"])
+        route["formatted_date"] = route["date"].strftime("%Y-%m-%d")
+
+    return render_template("user/available_car_routes.html", routes=car_routes)
+
+# Route to book a car
+@app.route("/book-car/<route_id>", methods=["GET", "POST"])
+def book_car(route_id):
+    route = mongo.db.car_routes.find_one({"_id": ObjectId(route_id)})
+    
+    if not route:
+        flash("Car route not found.", "danger")
+        return redirect(url_for("show_available_cars"))
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        start_time = request.form.get("start_time")
+        people = request.form.get("people")
+        nid = request.form.get("nid")
+        note = request.form.get("note")
+
+        if not all([name, start_time, people, nid]):
+            flash("Please fill in all required fields.", "danger")
+            return redirect(request.url)
+
+        # Create a new order in the car_orders collection
+        order_data = {
+            "route_id": ObjectId(route_id),
+            "user_id": session.get('user_id'),  # Store user ID for referencing in admin view
+            "name": name,
+            "preferred_start_time": start_time,
+            "people": int(people),
+            "nid": nid,
+            "note": note,
+            "status": "pending",  # Set initial status to "pending"
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            # Store route details to ensure bill view has necessary information
+            "origin": route.get("origin"),
+            "destination": route.get("destination"),
+            "fare": route.get("fare"),
+            "date": route.get("date"),
+        }
+
+        # Insert the new order into car_orders collection
+        mongo.db.car_orders.insert_one(order_data)
+
+        # Update the car route's available cars
+        mongo.db.car_routes.update_one(
+            {"_id": ObjectId(route_id)},
+            {"$inc": {"available_cars": -1}}
+        )
+
+        flash("Car booking successful!", "success")
+        return redirect(url_for("show_available_cars"))
+
+    return render_template("user/book_car.html", route=route)
+
+# Admin - View All Orders
+@app.route('/admin/car_reservations')
+def admin_car_reservations():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+    
+    # Retrieve all orders from car_orders collection
+    orders = mongo.db.car_orders.find()
+    return render_template('admin/car_reservation.html', orders=orders)
+
+
+# Admin - Approve Order
+@app.route('/admin/approve_order/<order_id>')
+def approve_order(order_id):
+    try:
+        # Find the order using order_id
+        order = mongo.db.car_orders.find_one({"_id": ObjectId(order_id)})
+        if not order:
+            flash("Order not found.", "danger")
+            return redirect(url_for('admin_car_reservations'))
+        
+        # Update the order status to 'approved'
+        mongo.db.car_orders.update_one(
+            {"_id": ObjectId(order_id)},
+            {"$set": {"status": "approved", "confirmed_at": datetime.utcnow()}}
+        )
+        flash("Order Approved!", "success")
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
+    
+    return redirect(url_for('admin_car_reservations'))
+
+
+# Admin - Cancel Order
+@app.route('/admin/cancel_order/<order_id>')
+def cancel_order(order_id):
+    try:
+        # Find the order using order_id
+        order = mongo.db.car_orders.find_one({"_id": ObjectId(order_id)})
+        if not order:
+            flash("Order not found.", "danger")
+            return redirect(url_for('admin_car_reservations'))
+        
+        # Update the order status to 'rejected'
+        mongo.db.car_orders.update_one(
+            {"_id": ObjectId(order_id)},
+            {"$set": {"status": "rejected"}}
+        )
+        flash("Order Canceled!", "danger")
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
+    
+    return redirect(url_for('admin_car_reservations'))
+
+
+
+@app.route('/bill/<order_id>')
+def view_bill(order_id):
+    if 'user_id' not in session:
+        return redirect(url_for('user_login'))
+
+    order = mongo.db.car_orders.find_one({'_id': ObjectId(order_id)})
+
+    if order and order['status'] == 'approved':
+        route = mongo.db.car_routes.find_one({'_id': ObjectId(order['route_id'])})
+
+        if route:
+            return render_template('user/bill.html', order=order, route=route)
+        else:
+            flash("Associated car route not found.", "danger")
+            return redirect(url_for('my_orders'))
+
+    flash("Unauthorized or Unapproved Order", "danger")
+    return redirect(url_for('my_orders'))
+
+@app.route("/my-orders")
+def my_orders():
+    if 'user_id' not in session:
+        return redirect(url_for('user_login'))
+
+    # Fetch orders and convert cursor to a list
+    orders_cursor = mongo.db.car_orders.find({"user_id": session.get('user_id')})
+    orders = list(orders_cursor)  # Convert the cursor to a list
+
+    # Add formatted_date field to each order if the date exists
+    for order in orders:
+        if "date" in order:
+            order["formatted_date"] = order["date"].strftime("%Y-%m-%d")  # Format the date as needed
+        else:
+            order["formatted_date"] = "N/A"  # Default value if date is missing
+    
+    return render_template("user/my_orders.html", orders=orders)
+#################
+
+@app.route("/user/chat", methods=["GET", "POST"])
+def user_chat():
+    if "user_id" not in session:
+        flash("Please log in to chat.", "danger")
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        message = request.form.get("message")
+        if message:
+            mongo.db.chats.insert_one({
+                "sender": "user",
+                "user_id": user_id,
+                "message": message,
+                "timestamp": datetime.utcnow()
+            })
+        return redirect(url_for("user_chat"))
+
+    messages = mongo.db.chats.find({"user_id": user_id}).sort("timestamp", 1)
+    return render_template("user/chat.html", messages=messages)
+
+@app.route("/admin/messages")
+def admin_messages():
+    if "admin_id" not in session:
+        flash("Admin login required.", "danger")
+        return redirect(url_for("admin_login"))
+
+    user_ids = mongo.db.chats.distinct("user_id")
+    user_list = []
+    for uid in user_ids:
+        last = mongo.db.chats.find({"user_id": uid}).sort("timestamp", -1).limit(1)[0]
+        user = mongo.db.users.find_one({"_id": ObjectId(uid)})
+        user_list.append({
+            "user_id": uid,
+            "username": user["username"] if user else "Unknown",
+            "last_message": last["message"],
+            "timestamp": last["timestamp"]
+        })
+
+    return render_template("admin/messages.html", users=user_list)
+
+@app.route("/admin/chat/<user_id>", methods=["GET", "POST"])
+def admin_chat(user_id):
+    if "admin_id" not in session:
+        flash("Admin login required.", "danger")
+        return redirect(url_for("admin_login"))
+
+    if request.method == "POST":
+        message = request.form.get("message")
+        if message:
+            mongo.db.chats.insert_one({
+                "sender": "admin",
+                "user_id": user_id,
+                "message": message,
+                "timestamp": datetime.utcnow()
+            })
+        return redirect(url_for("admin_chat", user_id=user_id))
+
+    messages = mongo.db.chats.find({"user_id": user_id}).sort("timestamp", 1)
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    username = user["username"] if user else "Unknown User"
+    return render_template("admin/chat_view.html", messages=messages, username=username)
 # Run the App
 if __name__ == "__main__":
     app.run(debug=True, port=8800)
