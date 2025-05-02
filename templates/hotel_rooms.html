@@ -56,32 +56,6 @@
             <p>{{ room['description'] }}</p>
             <p>Price: ${{ room['price'] }}</p>
 
-            <!-- {% if room['ratings'] %}
-              <p>Average Rating: {{ (room['ratings'] | sum) / (room['ratings'] | length) | round(1) }} ⭐</p>
-            {% endif %}
-
-            {% if room['feedbacks'] %}
-              <div>
-                <strong>Guest Feedback:</strong>
-                <ul class="text-start ps-3">
-                  {% for feedback in room['feedbacks'] %}
-                    <li>{{ feedback }}</li>
-                  {% endfor %}
-                </ul>
-              </div>
-            {% endif %}
-
-            {% if room['complaints'] %} -->
-              <!-- <div>
-                <strong>Complaints:</strong>
-                <ul class="text-start ps-3">
-                  {% for complaint in room['complaints'] %}
-                    <li>{{ complaint }}</li>
-                  {% endfor %}
-                </ul>
-              </div>
-            {% endif %} -->
-
             <h6 class="mt-3">Available Rooms:</h6>
             <ul class="list-unstyled">
               {% set available_rooms = room.room_numbers | selectattr('status', 'equalto', 'available') | list %}
@@ -102,119 +76,168 @@
     </div>
   </div>
 
-  <!-- Booking Modal -->
-  <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <form class="modal-content" method="POST" action="/book-room">
-        <div class="modal-header">
-          <h5 class="modal-title" id="bookingModalLabel">Book a Room</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="room_id" id="room_id_input">
+  <!-- (keep everything above unchanged) -->
 
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Check-in Date</label>
-              <input type="date" class="form-control" name="checkin_date" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Check-out Date</label>
-              <input type="date" class="form-control" name="checkout_date" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Number of Guests</label>
-              <input type="number" class="form-control" name="guests" min="1" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Room Number</label>
-              <select name="room_number" id="room_number" class="form-select" required></select>
-            </div>
+<!-- Booking Modal -->
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="POST" action="/book-room">
+      <div class="modal-header">
+        <h5 class="modal-title" id="bookingModalLabel">Book a Room</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="room_id" id="room_id_input">
 
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Bed Type</label>
-              <select name="bed_type" class="form-select">
-                <option>Single</option>
-                <option>Double</option>
-                <option>King</option>
-                <option>Twin</option>
-              </select>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Smoking Preference</label>
-              <select name="smoking" class="form-select">
-                <option>Non-Smoking</option>
-                <option>Smoking</option>
-              </select>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">View Preference</label>
-              <select name="view_preference" class="form-select">
-                <option>Sea View</option>
-                <option>City View</option>
-                <option>Garden View</option>
-              </select>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Floor Preference</label>
-              <select name="floor_preference" class="form-select">
-                <option>Low Floor</option>
-                <option>High Floor</option>
-              </select>
-            </div>
-
-            <div class="col-md-6 mb-3 form-check">
-              <input class="form-check-input" type="checkbox" name="breakfast" value="Yes" id="breakfast">
-              <label class="form-check-label" for="breakfast">Breakfast Included?</label>
-            </div>
-            <div class="col-md-6 mb-3 form-check">
-              <input class="form-check-input" type="checkbox" name="airport_pickup" value="Yes" id="airport_pickup">
-              <label class="form-check-label" for="airport_pickup">Airport Pickup</label>
-            </div>
-            <div class="col-md-6 mb-3 form-check">
-              <input class="form-check-input" type="checkbox" name="late_checkout" value="Yes" id="late_checkout">
-              <label class="form-check-label" for="late_checkout">Late Checkout</label>
-            </div>
-            <div class="col-md-6 mb-3 form-check">
-              <input class="form-check-input" type="checkbox" name="early_checkin" value="Yes" id="early_checkin">
-              <label class="form-check-label" for="early_checkin">Early Check-in</label>
-            </div>
-            <div class="col-md-6 mb-3 form-check">
-              <input class="form-check-input" type="checkbox" name="extra_bed" value="Yes" id="extra_bed">
-              <label class="form-check-label" for="extra_bed">Extra Bed or Crib</label>
-            </div>
-            <div class="col-md-6 mb-3 form-check">
-              <input class="form-check-input" type="checkbox" name="facilities" value="Spa/Gym/Pool" id="facilities">
-              <label class="form-check-label" for="facilities">Spa/Gym/Pool Access</label>
-            </div>
-
-            <hr class="my-4">
-
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Full Name</label>
-              <input type="text" class="form-control" name="user_name" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Email Address</label>
-              <input type="email" class="form-control" name="email" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Phone Number</label>
-              <input type="tel" class="form-control" name="phone" required>
-            </div>
-            <div class="col-md-12 mb-3">
-              <label class="form-label">Special Requests</label>
-              <textarea class="form-control" name="special_requests" rows="3" placeholder="E.g. allergies, birthday surprises..."></textarea>
-            </div>
+        <div class="row">
+          <!-- Date & Guest Info -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Check-in Date</label>
+            <input type="date" class="form-control" name="checkin_date" required>
           </div>
-        </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Check-out Date</label>
+            <input type="date" class="form-control" name="checkout_date" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Number of Guests</label>
+            <input type="number" class="form-control" name="guests" min="1" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Room Number</label>
+            <select name="room_number" id="room_number" class="form-select" required></select>
+          </div>
 
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-success">Confirm Booking</button>
-        </div>
-      </form>
+          <!-- Preferences -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Bed Type</label>
+            <select name="bed_type" class="form-select">
+              <option>Single</option>
+              <option>Double</option>
+              <option>King</option>
+              <option>Twin</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Smoking Preference</label>
+            <select name="smoking" class="form-select">
+              <option>Non-Smoking</option>
+              <option>Smoking</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">View Preference</label>
+            <select name="view_preference" class="form-select">
+              <option>Sea View</option>
+              <option>City View</option>
+              <option>Garden View</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Floor Preference</label>
+            <select name="floor_preference" class="form-select">
+              <option>Low Floor</option>
+              <option>High Floor</option>
+            </select>
+          </div>
+
+
+          <!-- Add-on Services -->
+          <!-- Toggle for Add-on Services -->
+<!-- Add-on Services Section -->
+<div class="col-12 mt-4">
+  <h5 class="text-primary" id="addon-services-header" style="cursor: pointer;">Add-on Services</h5>
+  <div id="addon-services-options" class="row" style="display: none;">
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="wifi_upgrade" value="Yes" id="wifi_upgrade">
+      <label class="form-check-label" for="wifi_upgrade">High-Speed Wi-Fi</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="mini_bar" value="Yes" id="mini_bar">
+      <label class="form-check-label" for="mini_bar">Mini Bar</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="laundry" value="Yes" id="laundry">
+      <label class="form-check-label" for="laundry">Laundry Service</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="parking" value="Yes" id="parking">
+      <label class="form-check-label" for="parking">Parking Spot</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="pet_friendly" value="Yes" id="pet_friendly">
+      <label class="form-check-label" for="pet_friendly">Pet Friendly</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="room_decor" value="Yes" id="room_decor">
+      <label class="form-check-label" for="room_decor">Room Decoration</label>
     </div>
   </div>
+
+  <!-- Additional Options for Add-on Services -->
+  <div id="additional-addon-options" class="row mt-3" style="display: none;">
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="breakfast" value="Yes" id="breakfast">
+      <label class="form-check-label" for="breakfast">Breakfast Included?</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="airport_pickup" value="Yes" id="airport_pickup">
+      <label class="form-check-label" for="airport_pickup">Airport Pickup</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="late_checkout" value="Yes" id="late_checkout">
+      <label class="form-check-label" for="late_checkout">Late Checkout</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="early_checkin" value="Yes" id="early_checkin">
+      <label class="form-check-label" for="early_checkin">Early Check-in</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="extra_bed" value="Yes" id="extra_bed">
+      <label class="form-check-label" for="extra_bed">Extra Bed or Crib</label>
+    </div>
+    <div class="col-md-6 mb-3 form-check">
+      <input class="form-check-input" type="checkbox" name="spa_gym_pool" value="Yes" id="spa_gym_pool">
+      <label class="form-check-label" for="spa_gym_pool">Spa/Gym/Pool Access</label>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+          <!-- User Info -->
+          <hr class="my-4">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-control" name="user_name" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-control" name="email" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" class="form-control" name="phone" required>
+          </div>
+          <div class="col-md-12 mb-3">
+            <label class="form-label">Special Requests</label>
+            <textarea class="form-control" name="special_requests" rows="3" placeholder="E.g. allergies, birthday surprises..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Confirm Booking</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- (keep scripts below unchanged) -->
+
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -247,6 +270,36 @@
         });
     }
   </script>
+  <script>
+    // JavaScript to toggle Add-on Services visibility
+    const addonServicesHeader = document.getElementById('addon-services-header');
+    const addonServicesOptions = document.getElementById('addon-services-options');
+    const additionalAddonOptions = document.getElementById('additional-addon-options');
+  
+    // Initial setup for both sections to be hidden on page load
+    addonServicesOptions.style.display = 'none';
+    additionalAddonOptions.style.display = 'none';
+  
+    // Toggle visibility of the Add-on Services options when header is clicked
+    addonServicesHeader.addEventListener('click', () => {
+      // Check if Add-on Services section is visible
+      const isAddonServicesVisible = addonServicesOptions.style.display === 'block';
+  
+      // Toggle visibility of the Add-on Services section
+      addonServicesOptions.style.display = isAddonServicesVisible ? 'none' : 'block';
+  
+      // If Add-on Services is hidden, also hide the additional options
+      if (isAddonServicesVisible) {
+        additionalAddonOptions.style.display = 'none';
+      } else {
+        // Show Additional Options if Add-on Services is visible
+        additionalAddonOptions.style.display = 'block';
+      }
+    });
+  </script>
+  
+  
+  
 
 </body>
 </html>
