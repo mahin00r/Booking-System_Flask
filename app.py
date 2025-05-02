@@ -349,19 +349,45 @@ def book_room():
     smoking = form.get('smoking')
     view_preference = form.get('view_preference')
     floor_preference = form.get('floor_preference')
+    
+    # Handle optional Add-on Services
     breakfast = form.get('breakfast', 'No')
     airport_pickup = form.get('airport_pickup', 'No')
     late_checkout = form.get('late_checkout', 'No')
     early_checkin = form.get('early_checkin', 'No')
     extra_bed = form.get('extra_bed', 'No')
-    facilities = form.get('facilities', 'No')
-    special_requests = form.get('special_requests')
+    wifi_upgrade = form.get('wifi_upgrade', 'No')
+    mini_bar = form.get('mini_bar', 'No')
+    laundry = form.get('laundry', 'No')
+    parking = form.get('parking', 'No')
+    pet_friendly = form.get('pet_friendly', 'No')
+    room_decor = form.get('room_decor', 'No')
+    spa_gym_pool = form.get('spa_gym_pool', 'No')
 
+    # Collect all selected add-ons into a dictionary
+    # Assuming this block captures the add-ons and stores them as an object
+    add_ons = {
+    "high_speed_wifi": form.get('wifi_upgrade', 'No'),
+    "mini_bar": form.get('mini_bar', 'No'),
+    "laundry_service": form.get('laundry', 'No'),
+    "parking_spot": form.get('parking', 'No'),
+    "pet_friendly": form.get('pet_friendly', 'No'),
+    "room_decoration": form.get('room_decor', 'No'),
+    "breakfast_included": form.get('breakfast', 'No'),
+    "airport_pickup": form.get('airport_pickup', 'No'),
+    "late_checkout": form.get('late_checkout', 'No'),
+    "early_checkin": form.get('early_checkin', 'No'),
+    "extra_bed": form.get('extra_bed', 'No'),
+    "spa_access": form.get('facilities', 'No')
+}
+
+
+    # Validate required fields
     if not all([room_id, room_number, user_name, email, phone, checkin_date, checkout_date]):
         flash("Please fill in all required fields.", "danger")
         return redirect(url_for('get_hotel_rooms'))
 
-    # Check if the room number is already booked
+    # Check if the selected room number is already booked
     room = mongo.db.hotel_rooms.find_one({
         '_id': ObjectId(room_id),
         'room_numbers': {
@@ -376,13 +402,13 @@ def book_room():
         flash(f"Room {room_number} is already booked.", "danger")
         return redirect(url_for('get_hotel_rooms'))
 
-    # Mark the selected room number as booked
+    # Mark room number as booked in the hotel_rooms collection
     mongo.db.hotel_rooms.update_one(
         {'_id': ObjectId(room_id), 'room_numbers.number': room_number},
         {'$set': {'room_numbers.$.status': 'booked'}}
     )
 
-    # Save the reservation
+    # Save the booking into the reservations collection
     reservation = {
         'room_id': ObjectId(room_id),
         'room_number': room_number,
@@ -396,22 +422,17 @@ def book_room():
         'smoking': smoking,
         'view_preference': view_preference,
         'floor_preference': floor_preference,
-        'breakfast': breakfast,
-        'airport_pickup': airport_pickup,
-        'late_checkout': late_checkout,
-        'early_checkin': early_checkin,
-        'extra_bed': extra_bed,
-        'facilities': facilities,
-        'special_requests': special_requests,
+        'add_ons': add_ons,  # Store the add-ons as a dictionary
+        'special_requests': form.get('special_requests', ''),
         'status': 'booked',
         'created_at': datetime.utcnow()
     }
 
+    # Insert the reservation into the MongoDB reservations collection
     mongo.db.reservations.insert_one(reservation)
 
-    flash('Room booked successfully!', 'success')
+    flash(f"Room {room_number} booked successfully!", "success")
     return redirect(url_for('get_hotel_rooms'))
-    # return redirect(url_for('rate_room', room_id=room_id))
 
 # Admin view to see all reservations
 @app.route('/admin/reservations')
