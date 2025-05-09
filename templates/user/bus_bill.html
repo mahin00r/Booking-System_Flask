@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Bill | {{ booking.name or 'Guest' }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-3">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <h2 class="text-center mb-4">Bus Booking Bill</h2>
+        <div class="card shadow">
+            <div class="card-header">
+                <strong>Bill for Booking ID:</strong> {{ booking._id }}
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ booking.name or 'N/A' }}</p>
+                <p><strong>Email:</strong> {{ booking.email or 'N/A' }}</p>
+                <p><strong>Phone:</strong> {{ booking.phone or 'N/A' }}</p>
+
+                <p><strong>Booking Date:</strong>
+                    {% if booking.created_at %}
+                        {{ booking.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+
+                <p><strong>Status:</strong> {{ booking.status | capitalize }}</p>
+
+                {% if booking.confirmed_at %}
+                    <p><strong>Confirmed At:</strong> 
+                        {{ booking.confirmed_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </p>
+                {% endif %}
+
+                <hr>
+                <h5 class="mb-3">Trip Details</h5>
+                <p><strong>Origin:</strong> {{ booking.origin or 'N/A' }}</p>
+                <p><strong>Destination:</strong> {{ booking.destination or 'N/A' }}</p>
+                <p><strong>Travel Date:</strong>
+                    {% if booking.date %}
+                        {{ booking.date.strftime('%Y-%m-%d') }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+                <p><strong>Number of Seats:</strong> {{ booking.seats or 0 }}</p>
+                <p><strong>Fare per Seat:</strong>
+                    {% if booking.fare_per_seat is not none %}৳{{ booking.fare_per_seat }}
+                    {% else %}N/A{% endif %}
+                </p>
+                <p><strong>Total Fare:</strong>
+                    {% if booking.total_fare is not none %}৳{{ booking.total_fare }}
+                    {% else %}N/A{% endif %}
+                </p>
+                {% if booking.route_id %}
+                    <p><strong>Route ID:</strong> {{ booking.route_id }}</p>
+                {% endif %}
+
+                <div class="mt-4">
+                    <a href="{{ url_for('home') }}" class="btn btn-secondary">Back</a>
+                    <button onclick="window.print()" class="btn btn-primary">Print</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (for alert dismiss) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -86,13 +86,14 @@ def login():
 
         user = mongo.db.users.find_one({"email": email})
         if user and check_password_hash(user["password_hash"], password):
-            session["user_id"] = str(user["_id"])
+            session["email"] = user["email"]  # Store email in session
             flash("Login successful!", "success")
-            return redirect(url_for("home"))  # ✅ Use redirect instead of render
+            return redirect(url_for("home"))
         else:
             flash("Invalid credentials.", "danger")
 
     return render_template("user/login.html")
+
 
 
 @app.route("/logout")
@@ -1215,30 +1216,38 @@ def book_bus_ticket(route_id):
 
     if request.method == "POST":
         try:
+            # Get form data
             seats = int(request.form.get("seats"))
             name = request.form.get("name")
             phone = request.form.get("phone")
-            email = request.form.get("email")
+            email = session.get("email")
             address = request.form.get("address")
 
+            # Validate seats
             if seats <= 0 or seats > route.get("available_tickets", 0):
                 flash("Invalid number of seats selected.", "danger")
                 return redirect(request.url)
 
-            # Format date and time
+            # Format booking date and time
             booking_date = route.get("date")
             booking_time = route.get("time", "00:00")
+
+            # Format date correctly
             if isinstance(booking_date, datetime):
                 formatted_date = booking_date.strftime("%B %d, %Y")
             else:
                 formatted_date = booking_date or "N/A"
 
+            # Format time correctly
             try:
                 formatted_time = datetime.strptime(booking_time, "%H:%M").strftime("%I:%M %p")
-            except:
+            except ValueError:
                 formatted_time = booking_time or "N/A"
 
-            # Insert booking into `bus_bookings` collection
+            # Calculate the total fare
+            total_fare = float(route["fare"]) * seats
+
+            # Insert booking into bus_bookings collection
             booking = {
                 "route_id": str(route["_id"]),
                 "origin": route.get("origin", "Unknown"),
@@ -1251,14 +1260,15 @@ def book_bus_ticket(route_id):
                 "address": address,
                 "seats": seats,
                 "fare_per_seat": route["fare"],
-                "total_fare": float(route["fare"]) * seats,
+                "total_fare": total_fare,
                 "booking_time": datetime.now(),
-                "status": "Booked"  # ✅ Set status to avoid 'status' error
+                "status": "Booked"  # Set status to avoid 'status' error
             }
 
+            # Insert booking into the database
             mongo.db.bus_bookings.insert_one(booking)
 
-            # Update available tickets
+            # Update available tickets for the route
             mongo.db.bus_routes.update_one(
                 {"_id": ObjectId(route_id)},
                 {"$inc": {"available_tickets": -seats}}
@@ -1275,14 +1285,16 @@ def book_bus_ticket(route_id):
     route['_id'] = str(route['_id'])
     route['available_tickets'] = int(route.get('available_tickets', 0))
 
+    # Format route date
     if isinstance(route.get("date"), datetime):
         route["formatted_date"] = route["date"].strftime("%B %d, %Y")
     else:
         route["formatted_date"] = route.get("date", "N/A")
 
+    # Format route time
     try:
         route["formatted_time"] = datetime.strptime(route.get("time", "00:00"), "%H:%M").strftime("%I:%M %p")
-    except:
+    except ValueError:
         route["formatted_time"] = route.get("time", "N/A")
 
     return render_template("user/book_bus_ticket.html", route=route)
@@ -1354,6 +1366,28 @@ def cancel_bus_reservation(reservation_id):
     return redirect(url_for("manage_bus_reservations"))
 
 
+@app.route("/admin/approve_bus_reservation/<reservation_id>", methods=["GET"])
+def approve_bus_reservation(reservation_id):
+    try:
+        reservation_id = ObjectId(reservation_id)
+        reservation = mongo.db.bus_bookings.find_one({"_id": reservation_id})
+
+        if reservation:
+            if reservation.get("status") not in ["Approved", "Cancelled"]:
+                mongo.db.bus_bookings.update_one(
+                    {"_id": reservation_id},
+                    {"$set": {"status": "Approved"}}
+                )
+                flash("Reservation approved successfully!", "success")
+            else:
+                flash("Reservation already approved or cancelled.", "warning")
+        else:
+            flash("Reservation not found.", "danger")
+
+    except Exception as e:
+        flash(f"Error approving reservation: {str(e)}", "danger")
+
+    return redirect(url_for("manage_bus_reservations"))
 
 
 #### CAR USER #######
@@ -1510,18 +1544,63 @@ def my_orders():
     if 'user_id' not in session:
         return redirect(url_for('user_login'))
 
-    # Fetch orders and convert cursor to a list
-    orders_cursor = mongo.db.car_orders.find({"user_id": session.get('user_id')})
-    orders = list(orders_cursor)  # Convert the cursor to a list
+    user_id = session.get('user_id')
+    user_email = session.get('email')  # For bus booking lookup
 
-    # Add formatted_date field to each order if the date exists
-    for order in orders:
-        if "date" in order:
-            order["formatted_date"] = order["date"].strftime("%Y-%m-%d")  # Format the date as needed
-        else:
-            order["formatted_date"] = "N/A"  # Default value if date is missing
-    
-    return render_template("user/my_orders.html", orders=orders)
+    # Fetch car orders
+    car_orders_cursor = mongo.db.car_orders.find({"user_id": user_id})
+    car_orders = []
+    for order in car_orders_cursor:
+        order["formatted_date"] = order.get("date", "").strftime("%Y-%m-%d") if "date" in order else "N/A"
+        car_orders.append(order)
+
+    # ✅ Fetch both Booked and Approved bus orders (exclude Cancelled)
+    bus_orders_cursor = mongo.db.bus_bookings.find({
+        "email": user_email,
+        "status": {"$in": ["Booked", "Approved"]}
+    })
+    bus_orders = list(bus_orders_cursor)
+
+    return render_template("user/my_orders.html", car_orders=car_orders, bus_orders=bus_orders)
+
+
+
+@app.route("/bus-bill/<booking_id>")
+def view_bus_bill(booking_id):
+    if not session.get("email"):
+        flash("You must be logged in to view your bill.", "warning")
+        return redirect(url_for("login"))
+
+    # Fetch the booking from MongoDB
+    booking = mongo.db.bus_bookings.find_one({"_id": ObjectId(booking_id)})
+
+    if booking:
+        # Ensure 'created_at' is a datetime object, if not convert it
+        if isinstance(booking.get("created_at"), str):
+            try:
+                booking["created_at"] = datetime.strptime(booking["created_at"], "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                booking["created_at"] = None
+        
+        # Ensure 'date' is a datetime object, if not convert it
+        if isinstance(booking.get("date"), str):
+            try:
+                booking["date"] = datetime.strptime(booking["date"], "%Y-%m-%d")
+            except ValueError:
+                booking["date"] = None
+
+        # Ensure 'confirmed_at' is handled similarly
+        if isinstance(booking.get("confirmed_at"), str):
+            try:
+                booking["confirmed_at"] = datetime.strptime(booking["confirmed_at"], "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                booking["confirmed_at"] = None
+
+        return render_template("user/bus_bill.html", booking=booking)
+
+    flash("Booking not found.", "danger")
+    return redirect(url_for("my_orders"))
+
 #################
 
 @app.route("/user/chat", methods=["GET", "POST"])

@@ -9,6 +9,7 @@
 <body>
     <div class="container mt-5">
         <h2 class="text-center">My Car Reservations</h2>
+        {% if car_orders %}
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -21,12 +22,12 @@
                 </tr>
             </thead>
             <tbody>
-                {% for order in orders %}
+                {% for order in car_orders %}
                 <tr>
-                    <td>{{ order._id }}</td> <!-- Use _id instead of ticket_id -->
+                    <td>{{ order._id }}</td>
                     <td>{{ order.origin }}</td>
                     <td>{{ order.destination }}</td>
-                    <td>{{ order.formatted_date }}</td> <!-- Use formatted_date for date -->
+                    <td>{{ order.formatted_date }}</td>
                     <td>{{ order.status }}</td>
                     <td>
                         {% if order.status == 'approved' %}
@@ -39,6 +40,59 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% else %}
+        <p class="text-muted text-center">No car bookings found.</p>
+        {% endif %}
     </div>
+    
+    <hr>
+    
+    <div class="container mt-5">
+        <h2 class="text-center">My Bus Reservations</h2>
+        {% if bus_orders %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Origin</th>
+                    <th>Destination</th>
+                    <th>Date</th>
+                    <th>Seats</th>
+                    <th>Total Fare</th>
+                    <th>Status</th>
+                    <th>View Bill</th>  <!-- New Column -->
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bus_orders %}
+                <tr>
+                    <td>{{ booking._id }}</td>
+                    <td>{{ booking.origin }}</td>
+                    <td>{{ booking.destination }}</td>
+                    <td>{{ booking.date }}</td>
+                    <td>{{ booking.seats }}</td>
+                    <td>${{ booking.total_fare }}</td>
+                    <td>
+                        {% if booking.status == "Approved" %}
+                        <span class="badge bg-success">Approved</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">{{ booking.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if booking.status == "Approved" %}
+                        <a href="{{ url_for('view_bus_bill', booking_id=booking._id) }}" class="btn btn-primary btn-sm">View Bill</a>
+                        {% else %}
+                        <span class="text-muted">No Bill</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted text-center">No bus bookings found.</p>
+        {% endif %}
+    </div>    
 </body>
 </html>

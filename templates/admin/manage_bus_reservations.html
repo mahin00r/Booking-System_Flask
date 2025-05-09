@@ -47,15 +47,19 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if r.get('status') != 'Cancelled' %}
-                        <a href="{{ url_for('cancel_bus_reservation', reservation_id=r.get('_id')|string) }}"
-
-                           class="btn btn-sm btn-danger"
-                           onclick="return confirm('Cancel this reservation?')">
-                           Cancel
-                        </a>
+                        {% if r.get('status') == 'Cancelled' %}
+                            <span class="text-muted">No Action</span>
                         {% else %}
-                        <span class="text-muted">No Action</span>
+                            {% if r.get('status') != 'Approved' %}
+                                <a href="{{ url_for('approve_bus_reservation', reservation_id=r.get('_id')|string) }}"
+                                   class="btn btn-sm btn-success"
+                                   onclick="return confirm('Approve this reservation?')">Approve</a>
+                                <a href="{{ url_for('cancel_bus_reservation', reservation_id=r.get('_id')|string) }}"
+                                   class="btn btn-sm btn-danger"
+                                   onclick="return confirm('Cancel this reservation?')">Cancel</a>
+                            {% else %}
+                                <span class="badge bg-primary">Approved</span>
+                            {% endif %}
                         {% endif %}
                     </td>
                 </tr>
