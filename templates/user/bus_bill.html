@@ -1,90 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking Bill | {{ booking.name or 'Guest' }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bus Ticket | {{ booking.name or 'Guest' }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f0f2f5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .ticket-container {
+      max-width: 600px;
+      margin: auto;
+      padding: 30px;
+      background: #fff;
+      border: 2px dashed #007bff;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .ticket-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .ticket-header h2 {
+      margin-bottom: 5px;
+    }
+    .ticket-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .ticket-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+    }
+    .ticket-list li:last-child {
+      border-bottom: none;
+    }
+    .ticket-label {
+      font-weight: 600;
+      color: #333;
+    }
+    .ticket-footer {
+      margin-top: 30px;
+      text-align: center;
+    }
+    @media print {
+      .btn-print, .btn-back {
+        display: none;
+      }
+      body {
+        background: white;
+      }
+      .ticket-container {
+        border: none;
+        box-shadow: none;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container mt-5">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mb-3">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+  <div class="container mt-5">
+    <div class="ticket-container">
+      <div class="ticket-header">
+        <h2>🚌 Bus Ticket</h2>
+        <p><strong>Booking ID:</strong> {{ booking._id }}</p>
+      </div>
 
-        <h2 class="text-center mb-4">Bus Booking Bill</h2>
-        <div class="card shadow">
-            <div class="card-header">
-                <strong>Bill for Booking ID:</strong> {{ booking._id }}
-            </div>
-            <div class="card-body">
-                <p><strong>Name:</strong> {{ booking.name or 'N/A' }}</p>
-                <p><strong>Email:</strong> {{ booking.email or 'N/A' }}</p>
-                <p><strong>Phone:</strong> {{ booking.phone or 'N/A' }}</p>
+      <ul class="ticket-list">
+        <li><span class="ticket-label">Name:</span> {{ booking.name or 'N/A' }}</li>
+        <li><span class="ticket-label">Email:</span> {{ booking.email or 'N/A' }}</li>
+        <li><span class="ticket-label">Phone:</span> {{ booking.phone or 'N/A' }}</li>
+        <li><span class="ticket-label">Status:</span> {{ booking.status | capitalize }}</li>
+        {% if booking.confirmed_at %}
+        <li>
+          <span class="ticket-label">Confirmed At:</span> 
+          {{ booking.confirmed_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        </li>
+        {% endif %}
+        <li><span class="ticket-label">Origin:</span> {{ booking.origin or 'N/A' }}</li>
+        <li><span class="ticket-label">Destination:</span> {{ booking.destination or 'N/A' }}</li>
+        <li>
+          <span class="ticket-label">Travel Date:</span>
+          {% if booking.date %}
+            {{ booking.date.strftime('%Y-%m-%d') }}
+          {% else %}
+            N/A
+          {% endif %}
+        </li>
+        <li><span class="ticket-label">Seats:</span> {{ booking.seats or 0 }}</li>
+        <li>
+          <span class="ticket-label">Fare/Seat:</span>
+          {% if booking.fare_per_seat is not none %}
+            ৳{{ booking.fare_per_seat }}
+          {% else %}
+            N/A
+          {% endif %}
+        </li>
+        <li>
+          <span class="ticket-label">Total Fare:</span>
+          {% if booking.total_fare is not none %}
+            ৳{{ booking.total_fare }}
+          {% else %}
+            N/A
+          {% endif %}
+        </li>
+        {% if booking.route_id %}
+        <li><span class="ticket-label">Route ID:</span> {{ booking.route_id }}</li>
+        {% endif %}
+      </ul>
 
-                <p><strong>Booking Date:</strong>
-                    {% if booking.created_at %}
-                        {{ booking.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </p>
-
-                <p><strong>Status:</strong> {{ booking.status | capitalize }}</p>
-
-                {% if booking.confirmed_at %}
-                    <p><strong>Confirmed At:</strong> 
-                        {{ booking.confirmed_at.strftime('%Y-%m-%d %H:%M:%S') }}
-                    </p>
-                {% endif %}
-
-                <hr>
-                <h5 class="mb-3">Trip Details</h5>
-                <p><strong>Origin:</strong> {{ booking.origin or 'N/A' }}</p>
-                <p><strong>Destination:</strong> {{ booking.destination or 'N/A' }}</p>
-                <p><strong>Travel Date:</strong>
-                    {% if booking.date %}
-                        {{ booking.date.strftime('%Y-%m-%d') }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </p>
-                <p><strong>Number of Seats:</strong> {{ booking.seats or 0 }}</p>
-                <p><strong>Fare per Seat:</strong>
-                    {% if booking.fare_per_seat is not none %}৳{{ booking.fare_per_seat }}
-                    {% else %}N/A{% endif %}
-                </p>
-                <p><strong>Total Fare:</strong>
-                    {% if booking.total_fare is not none %}৳{{ booking.total_fare }}
-                    {% else %}N/A{% endif %}
-                </p>
-                {% if booking.route_id %}
-                    <p><strong>Route ID:</strong> {{ booking.route_id }}</p>
-                {% endif %}
-
-                <div class="mt-4">
-                    <a href="{{ url_for('home') }}" class="btn btn-secondary">Back</a>
-                    <button onclick="window.print()" class="btn btn-primary">Print</button>
-                </div>
-            </div>
-        </div>
+      <div class="ticket-footer mt-4">
+        <button class="btn btn-secondary btn-back" onclick="window.location.href='{{ url_for('home') }}'">Back</button>
+        <button class="btn btn-primary btn-print" onclick="window.print()">🖨️ Print Ticket</button>
+      </div>
     </div>
+  </div>
 
-    <!-- Bootstrap JS (for alert dismiss) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

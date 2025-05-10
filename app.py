@@ -8,6 +8,7 @@ from pymongo import MongoClient
 from pymongo import ReturnDocument
 from datetime import datetime
 from bson.errors import InvalidId
+from dateutil.parser import parse as parse_date
 
 
 
@@ -896,7 +897,7 @@ def add_branch():
         flash("Branch added successfully.", "success")
         return redirect(url_for("view_branches"))
 
-    return render_template("admin/branch/add_branch.html")  # Path updated to reflect the correct template location
+    return render_template("admin/branch/add_branch.html")  
 
 @app.route("/admin/branch/view")
 def view_branches():
@@ -905,7 +906,7 @@ def view_branches():
         return redirect(url_for("admin_login"))
 
     branches = list(mongo.db.branches.find())
-    return render_template("admin/branch/view_branches.html", branches=branches)  # Path updated
+    return render_template("admin/branch/view_branches.html", branches=branches) 
 
 ##pent
 
@@ -984,7 +985,7 @@ def add_bus_route():
         destination = request.form.get("destination")
         date = request.form.get("date")
         time = request.form.get("time")
-        seat_class = request.form.get("seat_type")  # 🔄 corrected field name
+        seat_class = request.form.get("seat_type")  
         fare = request.form.get("fare")
         available_tickets = request.form.get("available_tickets")
 
@@ -1496,47 +1497,38 @@ def admin_car_reservations():
     return render_template('admin/car_reservation.html', orders=orders)
 
 
-# Admin - Approve Order
-@app.route('/admin/approve_order/<order_id>')
-def approve_order(order_id):
-    try:
-        # Find the order using order_id
-        order = mongo.db.car_orders.find_one({"_id": ObjectId(order_id)})
-        if not order:
-            flash("Order not found.", "danger")
-            return redirect(url_for('admin_car_reservations'))
-        
-        # Update the order status to 'approved'
-        mongo.db.car_orders.update_one(
-            {"_id": ObjectId(order_id)},
-            {"$set": {"status": "approved", "confirmed_at": datetime.utcnow()}}
-        )
+@app.route('/admin/update_order_status/<order_id>', methods=["POST"])
+def update_order_status(order_id):
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    action = request.form.get("action")
+    comment = request.form.get("admin_comment", "").strip()
+
+    update_fields = {
+        "updated_at": datetime.utcnow(),
+        "admin_comment": comment  # Save the comment in DB
+    }
+
+    if action == "approve":
+        update_fields["status"] = "approved"
+        update_fields["confirmed_at"] = datetime.utcnow()
         flash("Order Approved!", "success")
-    except Exception as e:
-        flash(f"Error: {str(e)}", "danger")
-    
-    return redirect(url_for('admin_car_reservations'))
+    elif action == "cancel":
+        update_fields["status"] = "rejected"
+        flash("Order Canceled!", "danger")
+    else:
+        flash("Invalid action.", "danger")
+        return redirect(url_for('admin_car_reservations'))
 
-
-# Admin - Cancel Order
-@app.route('/admin/cancel_order/<order_id>')
-def cancel_order(order_id):
     try:
-        # Find the order using order_id
-        order = mongo.db.car_orders.find_one({"_id": ObjectId(order_id)})
-        if not order:
-            flash("Order not found.", "danger")
-            return redirect(url_for('admin_car_reservations'))
-        
-        # Update the order status to 'rejected'
         mongo.db.car_orders.update_one(
             {"_id": ObjectId(order_id)},
-            {"$set": {"status": "rejected"}}
+            {"$set": update_fields}
         )
-        flash("Order Canceled!", "danger")
     except Exception as e:
         flash(f"Error: {str(e)}", "danger")
-    
+
     return redirect(url_for('admin_car_reservations'))
 
 
@@ -1592,35 +1584,30 @@ def view_bus_bill(booking_id):
         flash("You must be logged in to view your bill.", "warning")
         return redirect(url_for("login"))
 
-    # Fetch the booking from MongoDB
-    booking = mongo.db.bus_bookings.find_one({"_id": ObjectId(booking_id)})
+    try:
+        booking = mongo.db.bus_bookings.find_one({"_id": ObjectId(booking_id)})
+    except Exception as e:
+        flash("Invalid booking ID.", "danger")
+        return redirect(url_for("my_orders"))
 
     if booking:
-        # Ensure 'created_at' is a datetime object, if not convert it
-        if isinstance(booking.get("created_at"), str):
-            try:
-                booking["created_at"] = datetime.strptime(booking["created_at"], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                booking["created_at"] = None
-        
-        # Ensure 'date' is a datetime object, if not convert it
-        if isinstance(booking.get("date"), str):
-            try:
-                booking["date"] = datetime.strptime(booking["date"], "%Y-%m-%d")
-            except ValueError:
-                booking["date"] = None
-
-        # Ensure 'confirmed_at' is handled similarly
-        if isinstance(booking.get("confirmed_at"), str):
-            try:
-                booking["confirmed_at"] = datetime.strptime(booking["confirmed_at"], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                booking["confirmed_at"] = None
+        # Convert string dates to datetime objects if needed
+        for field in ["created_at", "date", "confirmed_at"]:
+            value = booking.get(field)
+            if isinstance(value, str):
+                try:
+                    booking[field] = parse_date(value)
+                except Exception as e:
+                    print(f"[!] Failed to parse {field}: {value} ({e})")
+                    booking[field] = None
+            elif not isinstance(value, datetime):
+                booking[field] = None  # Ensure type safety
 
         return render_template("user/bus_bill.html", booking=booking)
 
     flash("Booking not found.", "danger")
     return redirect(url_for("my_orders"))
+
 
 #################
 

@@ -1,42 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Car Booking Bill</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Car Booking Bill</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .bill-container {
+      max-width: 650px;
+      margin: auto;
+      padding: 30px;
+      background: #fff;
+      border: 2px dashed #28a745;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .bill-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .bill-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .bill-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      justify-content: space-between;
+    }
+    .bill-list li:last-child {
+      border-bottom: none;
+    }
+    .label {
+      font-weight: 600;
+      color: #343a40;
+    }
+    .section-title {
+      margin-top: 30px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #28a745;
+    }
+    .bill-footer {
+      margin-top: 30px;
+      text-align: center;
+    }
+    @media print {
+      .btn-print, .btn-back {
+        display: none;
+      }
+      .bill-container {
+        border: none;
+        box-shadow: none;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2 class="text-center">Car Booking Bill</h2>
-        <div class="card">
-            <div class="card-header">
-                Bill for Order ID: {{ order._id }}
-            </div>
-            <div class="card-body">
-                <p><strong>Name:</strong> {{ order.name }}</p>
-                <p><strong>NID:</strong> {{ order.nid }}</p>
-                <p><strong>Number of People:</strong> {{ order.people }}</p>
-                <p><strong>Preferred Start Time:</strong> {{ order.preferred_start_time }}</p>
-                <p><strong>Status:</strong> {{ order.status | capitalize }}</p>
-                <p><strong>Booking Time:</strong> {{ order.created_at }}</p>
-                {% if order.confirmed_at %}
-                    <p><strong>Confirmed At:</strong> {{ order.confirmed_at }}</p>
-                {% endif %}
+  <div class="container mt-5">
+    <div class="bill-container">
+      <div class="bill-header">
+        <h2>🚗 Car Booking Bill</h2>
+        <p><strong>Order ID:</strong> {{ order._id }}</p>
+      </div>
 
-                <hr>
-                <h5>Route Details</h5>
-                {% if order.origin and order.destination and order.fare %}
-                    <p><strong>Origin:</strong> {{ order.origin }}</p>
-                    <p><strong>Destination:</strong> {{ order.destination }}</p>
-                    <p><strong>Date:</strong> {{ order.date.strftime('%Y-%m-%d') }}</p>
-                    <p><strong>Car Type:</strong> {{ order.car_type }}</p>
-                    <p><strong>Fare:</strong> ${{ order.fare }}</p>
-                {% else %}
-                    <p class="text-danger">Route information not available.</p>
-                {% endif %}
-            </div>
-        </div>
+      <ul class="bill-list">
+        <li><span class="label">Name:</span> {{ order.name or 'N/A' }}</li>
+        <li><span class="label">NID:</span> {{ order.nid or 'N/A' }}</li>
+        <li><span class="label">Number of People:</span> {{ order.people or 'N/A' }}</li>
+        <li><span class="label">Preferred Start Time:</span> {{ order.preferred_start_time or 'N/A' }}</li>
+        <li><span class="label">Status:</span> {{ order.status | capitalize }}</li>
+        <li><span class="label">Booking Time:</span> {{ order.created_at }}</li>
+        {% if order.confirmed_at %}
+        <li><span class="label">Confirmed At:</span> {{ order.confirmed_at }}</li>
+        {% endif %}
+      </ul>
+
+      <div class="section-title">Route Details</div>
+      {% if order.origin and order.destination and order.fare %}
+      <ul class="bill-list">
+        <li><span class="label">Origin:</span> {{ order.origin }}</li>
+        <li><span class="label">Destination:</span> {{ order.destination }}</li>
+        <li><span class="label">Date:</span> {{ order.date.strftime('%Y-%m-%d') }}</li>
+        <li><span class="label">Fare:</span> ${{ order.fare }}</li>
+      </ul>
+      {% else %}
+      <p class="text-danger mt-3">Route information not available.</p>
+      {% endif %}
+
+      <div class="bill-footer">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary btn-back">Back</a>
+        <button onclick="window.print()" class="btn btn-success btn-print">🖨️ Print</button>
+      </div>
     </div>
+  </div>
 </body>
 </html>

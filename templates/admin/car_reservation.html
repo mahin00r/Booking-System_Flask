@@ -30,8 +30,13 @@
                     <td>{{ order.status }}</td>
                     <td>
                         {% if order.status == 'pending' %}
-                        <a href="{{ url_for('approve_order', order_id=order._id) }}" class="btn btn-success btn-sm">Approve</a>
-                        <a href="{{ url_for('cancel_order', order_id=order._id) }}" class="btn btn-danger btn-sm">Cancel</a>
+                        <form action="{{ url_for('update_order_status', order_id=order._id) }}" method="POST" class="d-flex flex-column">
+                            <textarea name="admin_comment" rows="2" class="form-control mb-2" placeholder="Write a comment..."></textarea>
+                            <div class="btn-group" role="group">
+                                <button name="action" value="approve" type="submit" class="btn btn-success btn-sm">Approve</button>
+                                <button name="action" value="cancel" type="submit" class="btn btn-danger btn-sm">Cancel</button>
+                            </div>
+                        </form>
                         {% else %}
                         <span class="text-muted">{{ order.status }}</span>
                         {% endif %}

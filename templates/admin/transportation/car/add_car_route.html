@@ -76,7 +76,7 @@
             </select>
 
             <label for="fare">Fare (BDT)</label>
-            <input type="number" name="fare" id="fare" step="0.01" readonly>
+            <input type="number" name="fare" id="fare" step="0.01">
 
             <label for="available_cars">Available Cars</label>
             <input type="number" name="available_cars" required>
@@ -107,14 +107,16 @@
 
         function updateFare() {
             const carType = carTypeSelect.value;
-            if (carType === "Small") {
-                fareInput.value = 2000;
-            } else if (carType === "Large") {
-                fareInput.value = 3000;
-            } else if (carType === "Extra Large") {
-                fareInput.value = 4000;
-            } else {
-                fareInput.value = "";
+            if (!fareInput.value || fareInput.value === "0") { // Only set default if empty or 0
+                if (carType === "Small") {
+                    fareInput.value = 2000;
+                } else if (carType === "Large") {
+                    fareInput.value = 3000;
+                } else if (carType === "Extra Large") {
+                    fareInput.value = 4000;
+                } else {
+                    fareInput.value = "";
+                }
             }
         }
 
