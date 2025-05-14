@@ -87,7 +87,7 @@ def login():
 
         user = mongo.db.users.find_one({"email": email})
         if user and check_password_hash(user["password_hash"], password):
-            session["email"] = user["email"]  # Store email in session
+            session["user_id"] = str(user["_id"])  # Store user ID in session
             flash("Login successful!", "success")
             return redirect(url_for("home"))
         else:
@@ -96,12 +96,12 @@ def login():
     return render_template("user/login.html")
 
 
-
 @app.route("/logout")
 def logout():
     session.pop("user_id", None)
     flash("Logged out successfully.", "success")
     return redirect(url_for("register"))
+
 
 # ------------ User Settings and Profile ------------
 
