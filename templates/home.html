@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Booking System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        /* Navbar Styling */
+        .navbar {
+            background-color: #004085;
+            transition: background-color 0.3s ease;
+        }
+        .navbar:hover {
+            background-color: #003366;
+        }
+        .navbar-btn {
+            padding: 8px 15px;
+            font-size: 1rem;
+            transition: transform 0.3s ease;
+        }
+        .navbar-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Card Styling */
+        .card {
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h4 {
+            color: #004085;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        .card p {
+            font-size: 1rem;
+            color: #555;
+        }
+
+        .card .btn-primary {
+            background-color: #004085;
+            border-color: #004085;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .card .btn-primary:hover {
+            background-color: #003366;
+            border-color: #003366;
+            transform: scale(1.05);
+        }
+
+        /* Animation on page load */
+        body {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light px-4">
+        <a class="navbar-brand text-white" href="#">Ticket Booking System</a>
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <a href="{{ url_for('admin_login') }}" class="btn btn-sm btn-warning navbar-btn">Admin Login</a>
+
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('user_settings') }}" class="btn btn-sm btn-info navbar-btn">Settings</a>
+                <a href="{{ url_for('user_profile') }}" class="btn btn-sm btn-secondary navbar-btn">Profile</a>
+                <a href="{{ url_for('user_chat') }}" class="btn btn-sm btn-secondary navbar-btn">💬 Chat with Admin</a>
+                <a href="{{ url_for('my_orders') }}" class="btn btn-sm btn-secondary navbar-btn">My Orders</a>
+
+                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-danger navbar-btn">Logout</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h2 class="text-center text-primary">Welcome to Ticket Booking System</h2>
+
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4>Hotel Rooms</h4>
+                    <p>Find the best rooms for your stay.</p>
+                    <a href="/hotel_rooms" class="btn btn-primary">View Rooms</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4>Penthouses</h4>
+                    <p>Luxury stays for ultimate comfort.</p>
+                    <a href="/penthouses" class="btn btn-primary">View Penthouses</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4>Transportation Tickets</h4>
+                    <p>Book your tickets for easy travel.</p>
+                    <a href="/transport_tickets" class="btn btn-primary">View Tickets</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4>Find a Travel Buddy</h4>
+                    <p>Connect with fellow travelers.</p>
+                    <a href="/travel_buddies" class="btn btn-primary">Find Buddies</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

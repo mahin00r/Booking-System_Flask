@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>All Branches</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fffbe6;
+            padding: 40px;
+            color: #333;
+        }
+
+        h2 {
+            color: #ff9800;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        table {
+            width: 90%;
+            margin: auto;
+            border-collapse: collapse;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ffd54f;
+            text-align: left;
+        }
+
+        th {
+            background-color: #ffb300;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fff3e0;
+        }
+
+        tr:hover {
+            background-color: #ffe0b2;
+        }
+
+        p {
+            text-align: center;
+            color: #f57c00;
+        }
+    </style>
+</head>
+<body>
+    <h2>All Branches</h2>
+
+    {% if branches %}
+    <table>
+        <tr>
+            <th>Division</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Details</th>
+        </tr>
+        {% for branch in branches %}
+        <tr>
+            <td>{{ branch.name }}</td>
+            <td>{{ branch.email }}</td>
+            <td>{{ branch.phone }}</td>
+            <td>{{ branch.address }}</td>
+            <td>{{ branch.details }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>No branches found.</p>
+    {% endif %}
+</body>
+</html>

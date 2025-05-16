@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Penthouses</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f4f6f9;
+        }
+
+        .table-img {
+            width: 100px;
+            height: auto;
+        }
+
+        .container {
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 class="text-center mb-4">🏢 Manage Penthouses</h2>
+
+    {% if penthouses | length == 0 %}
+        <div class="alert alert-info text-center">No penthouses available.</div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Title</th>
+                        <th>Location</th>
+                        <th>Price</th>
+                        <th>Features</th>
+                        <th>Image</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for penthouse in penthouses %}
+                    <tr>
+                        <td>{{ penthouse.title }}</td>
+                        <td>{{ penthouse.location }}</td>
+                        <td>${{ penthouse.price }}</td>
+                        <td>{{ penthouse.features }}</td>
+                        <td>
+                            {% if penthouse.image_url %}
+                                <img src="{{ penthouse.image_url }}" class="table-img" alt="Image">
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('delete_penthouse', penthouse_id=penthouse._id) }}"
+                                  onsubmit="return confirm('Are you sure you want to delete this penthouse?');">
+                                <button class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                            <a href="{{ url_for('manage_reservations', penthouse_id=penthouse._id) }}"
+                               class="btn btn-primary btn-sm mt-2">Manage Reservation</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>
+
+

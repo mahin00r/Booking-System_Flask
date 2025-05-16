@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Ticket Booking System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f7f7f7;
+            padding-top: 40px;
+        }
+        .container {
+            max-width: 600px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            padding: 20px;
+        }
+        .profile-img-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .profile-img-container img {
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+        }
+        .list-group-item {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2 class="text-center mb-4">Your Profile</h2>
+
+        <!-- Profile Picture -->
+        <div class="profile-img-container">
+            <img src="{{ user.profile_pic if user.profile_pic else 'https://www.w3schools.com/w3images/avatar2.png' }}" alt="Profile Image">
+        </div>
+
+        <!-- User Information -->
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Name:</strong> {{ user.name or 'N/A' }}</li>
+            <li class="list-group-item"><strong>Username:</strong> {{ user.username }}</li>
+            <li class="list-group-item"><strong>Email:</strong> {{ user.email }}</li>
+            <li class="list-group-item"><strong>Phone:</strong> {{ user.phone or 'N/A' }}</li>
+            <li class="list-group-item"><strong>Address:</strong> {{ user.address or 'N/A' }}</li>
+            <li class="list-group-item"><strong>Description:</strong> {{ user.description or 'N/A' }}</li>
+        </ul>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find a Travel Buddy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">Find Your Travel Buddy</h2>
+        
+        <div class="row mt-4">
+            <!-- Single Buddy Post Form -->
+            <div class="col-md-6">
+                <div class="card text-center p-3">
+                    <h4>Single Buddy</h4>
+                    <p>Find a like-minded travel companion for your journey.</p>
+                    <form action="{{ url_for('create_single_buddy') }}" method="POST">
+                        <input type="text" name="trip_title" placeholder="Trip Title" required class="form-control">
+                        <input type="text" name="destination" placeholder="Destination" required class="form-control mt-2">
+                        <input type="date" name="start_date" required class="form-control mt-2">
+                        <input type="date" name="end_date" required class="form-control mt-2">
+                        <select name="trip_type" class="form-control mt-2">
+                            <option value="Leisure">Leisure</option>
+                            <option value="Adventure">Adventure</option>
+                            <option value="Business">Business</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <select name="gender_preference" class="form-control mt-2">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Any">Any</option>
+                        </select>
+                        <input type="number" name="age_preference" placeholder="Age Preference (Optional)" class="form-control mt-2">
+                        <input type="number" name="budget" placeholder="Trip Budget (Optional)" class="form-control mt-2">
+                        <select name="mode_of_travel" class="form-control mt-2">
+                            <option value="Air">Air</option>
+                            <option value="Train">Train</option>
+                            <option value="Bus">Bus</option>
+                            <option value="Car">Car</option>
+                        </select>
+                        <select name="accommodation_preference" class="form-control mt-2">
+                            <option value="Shared">Shared</option>
+                            <option value="Separate">Separate</option>
+                            <option value="Not Booked Yet">Not Booked Yet</option>
+                        </select>
+                        <textarea name="short_bio" placeholder="Short Bio or Note" class="form-control mt-2"></textarea>
+                        <input type="text" name="contact_option" placeholder="Contact Option (in-app chat, email, etc.)" class="form-control mt-2">
+                        <button type="submit" class="btn btn-primary mt-3">Post Single Buddy</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Group Buddy Post Form -->
+            <div class="col-md-6">
+                <div class="card text-center p-3">
+                    <h4>Group Buddies</h4>
+                    <p>Join a group of travelers and explore together.</p>
+                    <form action="{{ url_for('create_group_buddy') }}" method="POST">
+                        <input type="text" name="trip_title" placeholder="Trip Title" required class="form-control">
+                        <input type="text" name="destination" placeholder="Destination" required class="form-control mt-2">
+                        <input type="date" name="start_date" required class="form-control mt-2">
+                        <input type="date" name="end_date" required class="form-control mt-2">
+                        <input type="number" name="group_size" placeholder="Number of People in Group" required class="form-control mt-2">
+                        <input type="number" name="looking_for_more" placeholder="Looking for How Many More" required class="form-control mt-2">
+                        <select name="group_type" class="form-control mt-2">
+                            <option value="Friends">Friends</option>
+                            <option value="Colleagues">Colleagues</option>
+                            <option value="Open Group">Open Group</option>
+                        </select>
+                        <input type="text" name="age_range" placeholder="Age Range of Current Group Members" class="form-control mt-2">
+                        <select name="gender_composition" class="form-control mt-2">
+                            <option value="All Male">All Male</option>
+                            <option value="All Female">All Female</option>
+                            <option value="Mixed">Mixed</option>
+                        </select>
+                        <select name="trip_type" class="form-control mt-2">
+                            <option value="Leisure">Leisure</option>
+                            <option value="Adventure">Adventure</option>
+                            <option value="Business">Business</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <input type="number" name="budget_range" placeholder="Budget Range per Person" class="form-control mt-2">
+                        <textarea name="accommodation_plan" placeholder="Accommodation Plan" class="form-control mt-2"></textarea>
+                        <textarea name="group_bio" placeholder="Brief About the Group/Trip" class="form-control mt-2"></textarea>
+                        <input type="text" name="contact_option" placeholder="Contact Option (in-app chat, email, etc.)" class="form-control mt-2">
+                        <button type="submit" class="btn btn-primary mt-3">Post Group Buddy</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approved Posts Section -->
+        <hr class="mt-5 mb-4">
+        <h3 class="text-center">Approved Travel Buddy Posts</h3>
+
+        <div class="row">
+            {% if buddies|length > 0 %}
+                {% for buddy in buddies %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                {% if buddy.type == 'single' %}
+                                    <h5 class="card-title">Single Buddy: {{ buddy.name }}</h5>
+                                    <p class="card-text"><strong>Destination:</strong> {{ buddy.destination }}</p>
+                                    <p class="card-text"><strong>Start Date:</strong> {{ buddy.start_date }}</p>
+                                    <p class="card-text"><strong>End Date:</strong> {{ buddy.end_date }}</p>
+                                    <p class="card-text"><strong>Trip Type:</strong> {{ buddy.trip_type }}</p>
+                                    <p class="card-text"><strong>Preferred Gender:</strong> {{ buddy.gender_preference }}</p>
+                                    <p class="card-text"><strong>Age Preference:</strong> {{ buddy.age_preference }}</p>
+                                    <p class="card-text"><strong>Budget:</strong> {{ buddy.budget }}</p>
+                                    <p class="card-text"><strong>Mode of Travel:</strong> {{ buddy.mode_of_travel }}</p>
+                                    <p class="card-text"><strong>Accommodation Preference:</strong> {{ buddy.accommodation_preference }}</p>
+                                    <p class="card-text"><strong>Short Bio:</strong> {{ buddy.short_bio }}</p>
+                                    <p class="card-text"><strong>Contact Option:</strong> {{ buddy.contact_option }}</p>
+                                {% elif buddy.type == 'group' %}
+                                    <h5 class="card-title">Group: {{ buddy.group_name }}</h5>
+                                    <p class="card-text"><strong>Destination:</strong> {{ buddy.destination }}</p>
+                                    <p class="card-text"><strong>Start Date:</strong> {{ buddy.start_date }}</p>
+                                    <p class="card-text"><strong>End Date:</strong> {{ buddy.end_date }}</p>
+                                    <p class="card-text"><strong>Group Size:</strong> {{ buddy.group_size }}</p>
+                                    <p class="card-text"><strong>Looking for More:</strong> {{ buddy.looking_for_more }}</p>
+                                    <p class="card-text"><strong>Group Type:</strong> {{ buddy.group_type }}</p>
+                                    <p class="card-text"><strong>Age Range:</strong> {{ buddy.age_range }}</p>
+                                    <p class="card-text"><strong>Gender Composition:</strong> {{ buddy.gender_composition }}</p>
+                                    <p class="card-text"><strong>Trip Type:</strong> {{ buddy.trip_type }}</p>
+                                    <p class="card-text"><strong>Budget Range:</strong> {{ buddy.budget_range }}</p>
+                                    <p class="card-text"><strong>Accommodation Plan:</strong> {{ buddy.accommodation_plan }}</p>
+                                    <p class="card-text"><strong>Group Bio:</strong> {{ buddy.group_bio }}</p>
+                                    <p class="card-text"><strong>Contact Option:</strong> {{ buddy.contact_option }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <p class="text-center">No approved posts yet.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Optional: Bootstrap JS for functionality if needed -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
